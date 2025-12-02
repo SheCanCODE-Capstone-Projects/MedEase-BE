@@ -40,8 +40,8 @@
             <artifactId>spring-boot-starter-webmvc-test</artifactId>
             <scope>test</scope>
         </dependency>
-<<<<<<< Updated upstream
-=======
+<!--<<<<<<< Updated upstream-->
+<!--=======-->
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-security</artifactId>
@@ -91,7 +91,7 @@
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-data-mongodb</artifactId>
         </dependency>
->>>>>>> Stashed changes
+<!--&gt;>>>>>> Stashed changes-->
     </dependencies>
 
     <build>
