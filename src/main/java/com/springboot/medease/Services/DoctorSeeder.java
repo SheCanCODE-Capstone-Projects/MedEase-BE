@@ -21,7 +21,7 @@ public class DoctorSeeder implements CommandLineRunner {
     @Override
     public void run(String... args) throws Exception {
 
-        if (!userRepository.existsByEmail("dr.jane@gmail.com.com")) {
+        if (!userRepository.existsByEmail("dr.janembabazi123@gmail.com.com")) {
 
             User doctor = new User();
             doctor.setFirstName("Jane");
