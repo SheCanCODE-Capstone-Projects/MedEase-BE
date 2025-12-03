@@ -1,5 +1,6 @@
 package com.springboot.medease.Security;
 import com.springboot.medease.Models.User;
+import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
 import io.jsonwebtoken.security.Keys;
@@ -23,13 +24,38 @@ public class JwtUtil {
 
     public  String generateToken(User user) {
         return Jwts.builder()
-                .setSubject(user.getId())
+                .setSubject(user.getEmail() != null ? user.getEmail() : user.getPhoneNumber())
                 .claim("email", user.getEmail())
+                .claim("phone", user.getPhoneNumber())
+                .claim("id", user.getId())
                 .claim("userType", user.getUserType())
                 .setIssuedAt(new Date())
                 .setExpiration(new Date(System.currentTimeMillis() + EXPIRATION_TIME))
                 .signWith(getSigningKey(), SignatureAlgorithm.HS256)
                 .compact();
+    }
+    private Claims extractAllClaims(String token) {
+        return Jwts.parserBuilder()
+                .setSigningKey(getSigningKey())
+                .build()
+                .parseClaimsJws(token)
+                .getBody();
+    }
+
+    public String extractEmail(String token) {
+        return extractAllClaims(token).get("email", String.class);
+    }
+
+    public String extractPhone(String token) {
+        return extractAllClaims(token).get("phone", String.class);
+    }
+
+    public String extractRole(String token) {
+        return extractAllClaims(token).get("userType", String.class);
+    }
+
+    public boolean validateToken(String token) {
+        return !extractAllClaims(token).getExpiration().before(new Date());
     }
 }
 

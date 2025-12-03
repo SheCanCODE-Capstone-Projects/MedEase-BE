@@ -1,6 +1,7 @@
 package com.springboot.medease.Services;
-import com.springboot.medease.GlobalException.ResourceNotFoundException;
-import com.springboot.medease.Models.RegisterResponse;
+import com.springboot.medease.DTOs.RegisterRequest;
+import com.springboot.medease.GlobalException.DuplicateResourceException;
+import com.springboot.medease.DTOs.RegisterResponse;
 import com.springboot.medease.Models.User;
 import com.springboot.medease.Models.UserType;
 import com.springboot.medease.Repository.UserRepository;
@@ -8,7 +9,6 @@ import com.springboot.medease.Security.JwtUtil;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
-
 import java.time.LocalDateTime;
 
 @Service
@@ -23,21 +23,23 @@ public class UserService {
     @Autowired
     private JwtUtil jwtUtil;
 
-    public RegisterResponse register(User user) {
+    public RegisterResponse register(RegisterRequest registerRequest) {
 
-        if (userRepository.existsByEmail(user.getEmail())) {
-            throw new ResourceNotFoundException("Email already exists");
+        if (userRepository.existsByEmail(registerRequest.getEmail())) {
+            throw new DuplicateResourceException("Email already exists");
         }
-        if (userRepository.existsByPhoneNumber(user.getPhoneNumber())) {
-            throw new ResourceNotFoundException("Phone number already exists");
+        if (userRepository.existsByPhoneNumber(registerRequest.getPhoneNumber())) {
+            throw new DuplicateResourceException("Phone number already exists");
         }
-        if (user.getUserType() == null) {
-            user.setUserType(UserType.patient);
-        }
-
+        User user = new User();
+        user.setFirstName(registerRequest.getFirstName());
+        user.setLastName(registerRequest.getLastName());
+        user.setEmail(registerRequest.getEmail());
+        user.setPhoneNumber(registerRequest.getPhoneNumber());
+        user.setPassword(passwordEncoder.encode(registerRequest.getPassword()));
+        user.setUserType(UserType.PATIENT);
         user.setCreatedAt(LocalDateTime.now());
         user.setUpdatedAt(LocalDateTime.now());
-        user.setPassword(passwordEncoder.encode(user.getPassword()));
 
         User savedUser = userRepository.save(user);
 
@@ -46,6 +48,10 @@ public class UserService {
         return new RegisterResponse(
                 "User registered successfully",
                 savedUser.getId(),
+                savedUser.getEmail(),
+                savedUser.getUserType(),
+                savedUser.getCreatedAt(),
+                savedUser.getUpdatedAt(),
                 token
         );
     }
