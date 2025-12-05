@@ -109,44 +109,44 @@ public class AuthService {
                 token);
     }
 
-//    public AuthResponse login(LoginRequest req) {
-//
-//        Optional<User> opt;
-//        if (req.getIdentifier().contains("@")) {
-//            opt = userRepository.findByEmail(req.getIdentifier());
-//        } else {
-//            opt = userRepository.findByPhoneNumber(req.getIdentifier());
-//        }
-//
-//        User user = opt.orElseThrow(() -> new RuntimeException("Invalid credentials"));
-//
-//        if (!passwordEncoder.matches(req.getPassword(), user.getPassword())) {
-//            throw new RuntimeException("Invalid credentials");
-//        }
-//
-//        String role = null;
-//        if (user.getUserType() != null) {
-//            role = user.getUserType().name();
-//        } else if (user.getPatientProfile() != null) {
-//            role = "ROLE_PATIENT";
-//        } else if (user.getDoctorProfile() != null) {
-//            role = "ROLE_DOCTOR";
-//        } else if (user.getPharmacistProfile() != null) {
-//            role = "ROLE_PHARMACIST";
-//        }
-//
-//        String identifier = user.getEmail() != null ? user.getEmail() : user.getPhoneNumber();
-//        String token = jwtUtil.generateToken(user);
-//
-//        return new AuthResponse(
-//                "Login successful",
-//                user.getId(),
-//                identifier,
-//                role,
-//                user.getCreatedAt(),
-//                user.getUpdatedAt(),
-//                token
-//        );
-//    }
+    public AuthResponse login(LoginRequest req) {
+
+        Optional<User> opt;
+        if (req.getIdentifier().contains("@")) {
+            opt = userRepository.findByEmail(req.getIdentifier());
+        } else {
+            opt = userRepository.findByPhoneNumber(req.getIdentifier());
+        }
+
+        User user = opt.orElseThrow(() -> new RuntimeException("Invalid credentials"));
+
+        if (!passwordEncoder.matches(req.getPassword(), user.getPassword())) {
+            throw new RuntimeException("Invalid credentials");
+        }
+
+        String role = null;
+        if (user.getUserType() != null) {
+            role = user.getUserType().name();
+        } else if (user.getPatientProfile() != null) {
+            role = "ROLE_PATIENT";
+        } else if (user.getDoctorProfile() != null) {
+            role = "ROLE_DOCTOR";
+        } else if (user.getPharmacistProfile() != null) {
+            role = "ROLE_PHARMACIST";
+        }
+
+        String identifier = user.getEmail() != null ? user.getEmail() : user.getPhoneNumber();
+        String token = jwtUtil.generateToken(user);
+
+        return new AuthResponse(
+                "Login successful",
+                user.getId(),
+                identifier,
+                role,
+                user.getCreatedAt(),
+                user.getUpdatedAt(),
+                token
+        );
+    }
 
 }
