@@ -23,7 +23,7 @@ public class UserService {
     @Autowired
     private JwtUtil jwtUtil;
 
-    public RegisterResponse register(RegisterRequest registerRequest) {
+    public RegisterResponse registerPatient(RegisterRequest registerRequest) {
 
         if (userRepository.existsByEmail(registerRequest.getEmail())) {
             throw new DuplicateResourceException("Email already exists");
@@ -37,7 +37,7 @@ public class UserService {
         user.setEmail(registerRequest.getEmail());
         user.setPhoneNumber(registerRequest.getPhoneNumber());
         user.setPassword(passwordEncoder.encode(registerRequest.getPassword()));
-        user.setUserType(UserType.PATIENT);
+        user.setUserType(UserType.ROLE_PATIENT);
         user.setCreatedAt(LocalDateTime.now());
         user.setUpdatedAt(LocalDateTime.now());
 

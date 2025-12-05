@@ -1,7 +1,7 @@
 package com.springboot.medease.Models;
 
 public enum UserType {
-    PATIENT,
-    DOCTOR,
-    PHARMACIST
+    ROLE_PATIENT,
+    ROLE_DOCTOR,
+    ROLE_PHARMACIST
 }

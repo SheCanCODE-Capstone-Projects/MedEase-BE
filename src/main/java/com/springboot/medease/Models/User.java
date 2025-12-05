@@ -1,4 +1,5 @@
 package com.springboot.medease.Models;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
@@ -26,13 +27,14 @@ public class User {
 
     @NotBlank(message = "Email is required")
     @Email(message = "Email must be valid")
-    @Indexed(unique = true)
+    @Indexed(unique = true, sparse = true)
     private String email;
 
     @NotBlank(message = "phoneNumber is required")
     @Indexed(unique = true)
     private String phoneNumber;
 
+    @JsonProperty(access = JsonProperty.Access.WRITE_ONLY)
     @NotBlank(message = "Password is required")
     @Size(min = 6, message = "Password must be at least 6 characters")
     private String password;
@@ -41,13 +43,8 @@ public class User {
     private LocalDateTime createdAt = LocalDateTime.now();
     private LocalDateTime updatedAt = LocalDateTime.now();
 
-    private String pharmacistFirstName;
-    private String pharmacistLastName;
-    private String pharmacistLicenseNumber;
-    private String pharmacyName;
-    private String pharmacyEmail;
-
-    private String doctorSpecialization;
-    private String doctorLicenseNumber;
+    private PharmacistProfile pharmacistProfile;
+    private DoctorProfile doctorProfile;
+    private PatientProfile patientProfile;
 
 }

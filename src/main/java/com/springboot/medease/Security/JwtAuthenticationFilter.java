@@ -1,5 +1,5 @@
 package com.springboot.medease.Security;
-import com.springboot.medease.Models.User;
+
 import com.springboot.medease.Repository.UserRepository;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -7,14 +7,15 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 import java.io.IOException;
-import java.util.List;
+import java.util.Map;
 
 @Component
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
@@ -23,51 +24,54 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     private JwtUtil jwtUtil;
 
     @Autowired
+    private CustomUserDetailsService userDetailsService;
+
+    @Autowired
     private UserRepository userRepository;
 
     @Override
     protected void doFilterInternal(HttpServletRequest request,
                                     HttpServletResponse response,
-                                    FilterChain filterChain) throws ServletException, IOException {
+                                    FilterChain filterChain)
+            throws ServletException, IOException {
+
+        String path = request.getRequestURI();
+
+        // Skip JWT check for registration and login endpoints
+        if (path.startsWith("/api/auth/register") || path.startsWith("/api/auth/login") ||
+                path.startsWith("/api/auth/pharmacist/register")) {
+            filterChain.doFilter(request, response);
+            return;
+        }
 
         try {
-            String path = request.getRequestURI();
-
-            if (path.startsWith("/api/users/register") || path.startsWith("/api/users/login") || path.startsWith("/api/pharmacist/register")) {
-                filterChain.doFilter(request, response);
-                return;
-            }
-
-            final String authHeader = request.getHeader("Authorization");
-            String email = null;
-            String phoneNumber = null;
-            String token = null;
+            String authHeader = request.getHeader("Authorization");
 
             if (authHeader != null && authHeader.startsWith("Bearer ")) {
-                token = authHeader.substring(7);
-                email = jwtUtil.extractEmail(token);
-                phoneNumber = jwtUtil.extractPhone(token);
-            }
+                String token = authHeader.substring(7);
+                String identifier = jwtUtil.extractEmail(token);
+                String phone = jwtUtil.extractPhone(token);
 
-            if ((email != null || phoneNumber != null) &&
-                    SecurityContextHolder.getContext().getAuthentication() == null) {
+                String username = identifier != null ? identifier : phone;
 
-                User user = null;
-                if (email != null) {
-                    user = userRepository.findByEmail(email).orElse(null);
-                } else if (phoneNumber != null) {
-                    user = userRepository.findByPhoneNumber(phoneNumber).orElse(null);
-                }
+                if (username != null && SecurityContextHolder.getContext().getAuthentication() == null) {
+                    UserDetails userDetails = userDetailsService.loadUserByUsername(username);
 
-                if (user != null && jwtUtil.validateToken(token)) {
-                    String role = jwtUtil.extractRole(token);
+                    if (jwtUtil.validateToken(token)) {
+                        UsernamePasswordAuthenticationToken authToken =
+                                new UsernamePasswordAuthenticationToken(
+                                        userDetails,
+                                        null,
+                                        userDetails.getAuthorities()
+                                );
 
-                    UsernamePasswordAuthenticationToken authToken =
-                            new UsernamePasswordAuthenticationToken(
-                                    user, null, List.of(new SimpleGrantedAuthority(role))
-                            );
-                    authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
-                    SecurityContextHolder.getContext().setAuthentication(authToken);
+                        authToken.setDetails(new WebAuthenticationDetailsSource()
+                                .buildDetails(request));
+
+                        SecurityContextHolder.getContext().setAuthentication(authToken);
+                    } else {
+                        throw new RuntimeException("Invalid JWT token");
+                    }
                 }
             }
 
@@ -75,7 +79,15 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
         } catch (Exception e) {
             response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+            response.setContentType("application/json");
+
+            new ObjectMapper().writeValue(
+                    response.getOutputStream(),
+                    Map.of(
+                            "error", "Unauthorized",
+                            "message", e.getMessage()
+                    )
+            );
         }
     }
 }
-

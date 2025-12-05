@@ -8,7 +8,6 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
-import java.util.List;
 
 @Service
 public class CustomUserDetailsService implements UserDetailsService {
@@ -22,18 +21,19 @@ public class CustomUserDetailsService implements UserDetailsService {
     }
 
     @Override
-    public UserDetails loadUserByUsername(String email) throws UsernameNotFoundException {
+    public UserDetails loadUserByUsername(String usernameOrPhone) throws UsernameNotFoundException {
 
-        User user = userRepo.findByEmail(email).orElse(null);
+        User user = userRepo.findByEmail(usernameOrPhone)
+                .orElseGet(() -> userRepo.findByPhoneNumber(usernameOrPhone).orElse(null));
 
-        if (user == null) {
-            throw new UsernameNotFoundException("User not found with email: " + email);
-        }
-        return new org.springframework.security.core.userdetails.User(
-                user.getEmail(),
-                user.getPassword(),
-                List.of(new SimpleGrantedAuthority(user.getUserType().name()))
-        );
+        if (user == null) throw new UsernameNotFoundException("User not found");
+
+        String role = user.getUserType() != null ? "ROLE_" + user.getUserType().name() : "ROLE_PATIENT";
+        return org.springframework.security.core.userdetails.User
+                .withUsername(user.getEmail() != null ? user.getEmail() : user.getPhoneNumber())
+                .password(user.getPassword())
+                .authorities(new SimpleGrantedAuthority(role))
+                .build();
     }
 }
 
