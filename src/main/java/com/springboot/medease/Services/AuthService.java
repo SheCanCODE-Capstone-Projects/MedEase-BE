@@ -9,6 +9,7 @@ import com.springboot.medease.Models.UserType;
 import com.springboot.medease.Repository.UserRepository;
 import com.springboot.medease.Security.JwtUtil;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import java.time.LocalDateTime;
@@ -118,10 +119,10 @@ public class AuthService {
             opt = userRepository.findByPhoneNumber(req.getIdentifier());
         }
 
-        User user = opt.orElseThrow(() -> new RuntimeException("Invalid credentials"));
+        User user = opt.orElseThrow(() -> new BadCredentialsException("Invalid credentials"));
 
         if (!passwordEncoder.matches(req.getPassword(), user.getPassword())) {
-            throw new RuntimeException("Invalid credentials");
+            throw new BadCredentialsException("Invalid credentials");
         }
 
         String role = null;

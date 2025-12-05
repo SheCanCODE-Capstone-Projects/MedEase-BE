@@ -12,7 +12,7 @@ import java.time.LocalDateTime;
 public class AuthResponse {
     private String message;
     private String userId;
-    private String email;
+    private String identifier;
     private String role;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
