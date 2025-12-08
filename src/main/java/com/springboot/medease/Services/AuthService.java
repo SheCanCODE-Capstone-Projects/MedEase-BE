@@ -28,86 +28,84 @@ public class AuthService {
 
     public AuthResponse registerPatient(RegisterRequest req) {
 
-        if (userRepository.existsByEmail(req.getEmail())) {
+        if (userRepository.existsByPatientsEmail(req.getEmail())) {
             throw new DuplicateResourceException("Email already exists");
         }
-        if (userRepository.existsByPhoneNumber(req.getPhoneNumber())) {
+
+        if (userRepository.existsByPatientsPhoneNumber(req.getPhoneNumber())) {
             throw new DuplicateResourceException("Phone number already exists");
         }
 
-        PatientProfile patientProfile = new PatientProfile();
-        patientProfile.setFirstName(req.getFirstName());
-        patientProfile.setLastName(req.getLastName());
-        patientProfile.setInsuranceProvider(req.getInsuranceProvider());
-        patientProfile.setInsuranceNumber(req.getInsuranceNumber());
-
+        PatientProfile profile = new PatientProfile();
+        profile.setFirstName(req.getFirstName());
+        profile.setLastName(req.getLastName());
+        profile.setEmail(req.getEmail());
+        profile.setPhoneNumber(req.getPhoneNumber());
+        profile.setPassword(passwordEncoder.encode(req.getPassword()));
+        profile.setInsuranceProvider(req.getInsuranceProvider());
+        profile.setInsuranceNumber(req.getInsuranceNumber());
 
         User user = new User();
-        user.setEmail(req.getEmail());
-        user.setPhoneNumber(req.getPhoneNumber());
-        user.setPassword(passwordEncoder.encode(req.getPassword()));
-        user.setUserType(UserType.ROLE_PATIENT);
-        user.setPatientProfile(patientProfile);
-        user.setCreatedAt(LocalDateTime.now());
-        user.setUpdatedAt(LocalDateTime.now());
-
+        user.setPatients(profile);
 
         userRepository.save(user);
 
-        String token = jwtUtil.generateToken(user);
+        String token = jwtUtil.generateToken(profile.getEmail());
 
-        return new AuthResponse("User registered successfully",
+        return new AuthResponse(
+                "User registered successfully",
                 user.getId(),
-                user.getEmail(),
-                user.getUserType().name(),
-                user.getCreatedAt(),
-                user.getUpdatedAt(),
-                token);
+                profile.getEmail(),
+                "PATIENT",
+                LocalDateTime.now(),
+                LocalDateTime.now(),
+                token
+        );
     }
+
 
     public AuthResponse registerPharmacist(PharmacistRegisterRequest req) {
 
-        if (userRepository.existsByEmail(req.getPharmacyEmail())) {
+        if (userRepository.existsByPharmacistsPharmacyEmail(req.getPharmacyEmail())) {
             throw new DuplicateResourceException("Pharmacy email already exists");
         }
-        Boolean exists = userRepository.existsByPharmacistProfilePharmacistLicenseNumber(req.getPharmacistLicenseNumber());
-        if (Boolean.TRUE.equals(exists)) {
+
+        if (userRepository.existsByPharmacistsPharmacistLicenseNumber(req.getPharmacistLicenseNumber())) {
             throw new DuplicateResourceException("License number already exists");
         }
 
-        if (userRepository.existsByPhoneNumber(req.getPhoneNumber())) {
+        if (userRepository.existsByPharmacistsPhoneNumber(req.getPhoneNumber())) {
             throw new DuplicateResourceException("Phone number already exists");
         }
 
         PharmacistProfile profile = new PharmacistProfile();
-        profile.setPharmacistFirstName(req.getPharmacistFirstName());
-        profile.setPharmacistLastName(req.getPharmacistLastName());
+        profile.setFirstName(req.getPharmacistFirstName());
+        profile.setLastName(req.getPharmacistLastName());
+        profile.setEmail(req.getPharmacyEmail());
+        profile.setPhoneNumber(req.getPhoneNumber());
+        profile.setPassword(passwordEncoder.encode(req.getPassword()));
         profile.setPharmacistLicenseNumber(req.getPharmacistLicenseNumber());
         profile.setPharmacyName(req.getPharmacyName());
         profile.setPharmacyEmail(req.getPharmacyEmail());
 
         User user = new User();
-        user.setEmail(req.getPharmacyEmail());
-        user.setPhoneNumber(req.getPhoneNumber());
-        user.setPassword(passwordEncoder.encode(req.getPassword()));
-        user.setUserType(UserType.ROLE_PHARMACIST);
-        user.setPharmacistProfile(profile);
-        user.setCreatedAt(LocalDateTime.now());
-        user.setUpdatedAt(LocalDateTime.now());
-
+        user.setPharmacists(profile);
 
         userRepository.save(user);
 
-        String token = jwtUtil.generateToken(user);
+        String token = jwtUtil.generateToken(profile.getEmail());
 
-        return new AuthResponse("Pharmacist registered successfully",
+        return new AuthResponse(
+                "User registered successfully",
                 user.getId(),
-                user.getEmail(),
-                user.getUserType().name(),
-                user.getCreatedAt(),
-                user.getUpdatedAt(),
-                token);
+                profile.getEmail(),
+                "PHARMACIST",
+                LocalDateTime.now(),
+                LocalDateTime.now(),
+                token
+        );
     }
+
 
 //    public AuthResponse login(LoginRequest req) {
 //
