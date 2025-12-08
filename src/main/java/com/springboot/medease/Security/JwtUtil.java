@@ -4,12 +4,10 @@ import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
 import io.jsonwebtoken.security.Keys;
-import jakarta.annotation.PostConstruct;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 import java.security.Key;
-import java.util.Base64;
 import java.util.Date;
 @Component
 public class JwtUtil {
@@ -17,23 +15,15 @@ public class JwtUtil {
     @Value("${app.jwt.secret}")
     private  String SECRET_KEY;
 
-//    @PostConstruct
-//    public void debugKey() {
-//        System.out.println("SECRET_KEY = " + SECRET_KEY);
-//    }
-
     @Value("${app.jwt.expiration-ms}")
     private   long EXPIRATION_TIME;
 
     private Key getSigningKey() {
 
         return Keys.hmacShaKeyFor(SECRET_KEY.getBytes());
-//        byte[] keyBytes = Base64.getDecoder().decode(SECRET_KEY);
-//        return Keys.hmacShaKeyFor(keyBytes);
     }
 
     public  String generateToken(User user) {
-        System.out.println("Generating Token...");
         return Jwts.builder()
                 .setSubject(user.getEmail() != null ? user.getEmail() : user.getPhoneNumber())
                 .claim("id", user.getId())

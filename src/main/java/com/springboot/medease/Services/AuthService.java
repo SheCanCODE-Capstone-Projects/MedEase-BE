@@ -9,6 +9,7 @@ import com.springboot.medease.Models.UserType;
 import com.springboot.medease.Repository.UserRepository;
 import com.springboot.medease.Security.JwtUtil;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import java.time.LocalDateTime;
@@ -28,123 +29,127 @@ public class AuthService {
 
     public AuthResponse registerPatient(RegisterRequest req) {
 
-        if (userRepository.existsByPatientsEmail(req.getEmail())) {
+        if (userRepository.existsByEmail(req.getEmail())) {
             throw new DuplicateResourceException("Email already exists");
         }
-
-        if (userRepository.existsByPatientsPhoneNumber(req.getPhoneNumber())) {
+        if (userRepository.existsByPhoneNumber(req.getPhoneNumber())) {
             throw new DuplicateResourceException("Phone number already exists");
         }
 
-        PatientProfile profile = new PatientProfile();
-        profile.setFirstName(req.getFirstName());
-        profile.setLastName(req.getLastName());
-        profile.setEmail(req.getEmail());
-        profile.setPhoneNumber(req.getPhoneNumber());
-        profile.setPassword(passwordEncoder.encode(req.getPassword()));
-        profile.setInsuranceProvider(req.getInsuranceProvider());
-        profile.setInsuranceNumber(req.getInsuranceNumber());
+        PatientProfile patientProfile = new PatientProfile();
+        patientProfile.setFirstName(req.getFirstName());
+        patientProfile.setLastName(req.getLastName());
+        patientProfile.setInsuranceProvider(req.getInsuranceProvider());
+        patientProfile.setInsuranceNumber(req.getInsuranceNumber());
+
 
         User user = new User();
-        user.setPatients(profile);
+        user.setFirstName(req.getFirstName());
+        user.setLastName(req.getLastName());
+        user.setEmail(req.getEmail());
+        user.setPhoneNumber(req.getPhoneNumber());
+        user.setPassword(passwordEncoder.encode(req.getPassword()));
+        user.setUserType(UserType.ROLE_PATIENT);
+        user.setPatientProfile(patientProfile);
+        user.setCreatedAt(LocalDateTime.now());
+        user.setUpdatedAt(LocalDateTime.now());
+
 
         userRepository.save(user);
 
-        String token = jwtUtil.generateToken(profile.getEmail());
+        String token = jwtUtil.generateToken(user);
 
-        return new AuthResponse(
-                "User registered successfully",
+        return new AuthResponse("User registered successfully",
                 user.getId(),
-                profile.getEmail(),
-                "PATIENT",
-                LocalDateTime.now(),
-                LocalDateTime.now(),
-                token
-        );
+                user.getEmail(),
+                user.getUserType().name(),
+                user.getCreatedAt(),
+                user.getUpdatedAt(),
+                token);
     }
-
 
     public AuthResponse registerPharmacist(PharmacistRegisterRequest req) {
 
-        if (userRepository.existsByPharmacistsPharmacyEmail(req.getPharmacyEmail())) {
+        if (userRepository.existsByEmail(req.getPharmacyEmail())) {
             throw new DuplicateResourceException("Pharmacy email already exists");
         }
-
-        if (userRepository.existsByPharmacistsPharmacistLicenseNumber(req.getPharmacistLicenseNumber())) {
+        Boolean exists = userRepository.existsByPharmacistProfilePharmacistLicenseNumber(req.getPharmacistLicenseNumber());
+        if (Boolean.TRUE.equals(exists)) {
             throw new DuplicateResourceException("License number already exists");
         }
 
-        if (userRepository.existsByPharmacistsPhoneNumber(req.getPhoneNumber())) {
+        if (userRepository.existsByPhoneNumber(req.getPhoneNumber())) {
             throw new DuplicateResourceException("Phone number already exists");
         }
 
         PharmacistProfile profile = new PharmacistProfile();
-        profile.setFirstName(req.getPharmacistFirstName());
-        profile.setLastName(req.getPharmacistLastName());
-        profile.setEmail(req.getPharmacyEmail());
-        profile.setPhoneNumber(req.getPhoneNumber());
-        profile.setPassword(passwordEncoder.encode(req.getPassword()));
+        profile.setPharmacistFirstName(req.getPharmacistFirstName());
+        profile.setPharmacistLastName(req.getPharmacistLastName());
         profile.setPharmacistLicenseNumber(req.getPharmacistLicenseNumber());
         profile.setPharmacyName(req.getPharmacyName());
         profile.setPharmacyEmail(req.getPharmacyEmail());
 
         User user = new User();
-        user.setPharmacists(profile);
+        user.setEmail(req.getPharmacyEmail());
+        user.setPhoneNumber(req.getPhoneNumber());
+        user.setPassword(passwordEncoder.encode(req.getPassword()));
+        user.setUserType(UserType.ROLE_PHARMACIST);
+        user.setPharmacistProfile(profile);
+        user.setCreatedAt(LocalDateTime.now());
+        user.setUpdatedAt(LocalDateTime.now());
+
 
         userRepository.save(user);
 
-        String token = jwtUtil.generateToken(profile.getEmail());
+        String token = jwtUtil.generateToken(user);
+
+        return new AuthResponse("Pharmacist registered successfully",
+                user.getId(),
+                user.getEmail(),
+                user.getUserType().name(),
+                user.getCreatedAt(),
+                user.getUpdatedAt(),
+                token);
+    }
+
+    public AuthResponse login(LoginRequest req) {
+
+        Optional<User> opt;
+        if (req.getIdentifier().contains("@")) {
+            opt = userRepository.findByEmail(req.getIdentifier());
+        } else {
+            opt = userRepository.findByPhoneNumber(req.getIdentifier());
+        }
+
+        User user = opt.orElseThrow(() -> new BadCredentialsException("Invalid credentials"));
+
+        if (!passwordEncoder.matches(req.getPassword(), user.getPassword())) {
+            throw new BadCredentialsException("Invalid credentials");
+        }
+
+        String role = null;
+        if (user.getUserType() != null) {
+            role = user.getUserType().name();
+        } else if (user.getPatientProfile() != null) {
+            role = "ROLE_PATIENT";
+        } else if (user.getDoctorProfile() != null) {
+            role = "ROLE_DOCTOR";
+        } else if (user.getPharmacistProfile() != null) {
+            role = "ROLE_PHARMACIST";
+        }
+
+        String identifier = user.getEmail() != null ? user.getEmail() : user.getPhoneNumber();
+        String token = jwtUtil.generateToken(user);
 
         return new AuthResponse(
-                "User registered successfully",
+                "Login successful",
                 user.getId(),
-                profile.getEmail(),
-                "PHARMACIST",
-                LocalDateTime.now(),
-                LocalDateTime.now(),
+                identifier,
+                role,
+                user.getCreatedAt(),
+                user.getUpdatedAt(),
                 token
         );
     }
-
-
-//    public AuthResponse login(LoginRequest req) {
-//
-//        Optional<User> opt;
-//        if (req.getIdentifier().contains("@")) {
-//            opt = userRepository.findByEmail(req.getIdentifier());
-//        } else {
-//            opt = userRepository.findByPhoneNumber(req.getIdentifier());
-//        }
-//
-//        User user = opt.orElseThrow(() -> new RuntimeException("Invalid credentials"));
-//
-//        if (!passwordEncoder.matches(req.getPassword(), user.getPassword())) {
-//            throw new RuntimeException("Invalid credentials");
-//        }
-//
-//        String role = null;
-//        if (user.getUserType() != null) {
-//            role = user.getUserType().name();
-//        } else if (user.getPatientProfile() != null) {
-//            role = "ROLE_PATIENT";
-//        } else if (user.getDoctorProfile() != null) {
-//            role = "ROLE_DOCTOR";
-//        } else if (user.getPharmacistProfile() != null) {
-//            role = "ROLE_PHARMACIST";
-//        }
-//
-//        String identifier = user.getEmail() != null ? user.getEmail() : user.getPhoneNumber();
-//        String token = jwtUtil.generateToken(user);
-//
-//        return new AuthResponse(
-//                "Login successful",
-//                user.getId(),
-//                identifier,
-//                role,
-//                user.getCreatedAt(),
-//                user.getUpdatedAt(),
-//                token
-//        );
-//    }
 
 }
