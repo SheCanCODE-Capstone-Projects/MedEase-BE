@@ -1,5 +1,6 @@
 package com.springboot.medease.Models;
 
+import jakarta.validation.constraints.NotBlank;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -8,10 +9,11 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 @NoArgsConstructor
 public class PharmacistProfile extends Profile {
-    private String pharmacistFirstName;
-    private String pharmacistLastName;
+
     private String pharmacistLicenseNumber;
+
+    @NotBlank(message = "provide the pharmacy name ")
     private String pharmacyName;
-    private String pharmacyEmail;
+
 }
 
