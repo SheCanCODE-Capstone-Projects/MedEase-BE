@@ -7,7 +7,7 @@ import lombok.NoArgsConstructor;
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
-public class PharmacistProfile {
+public class PharmacistProfile extends Profile {
     private String pharmacistFirstName;
     private String pharmacistLastName;
     private String pharmacistLicenseNumber;
