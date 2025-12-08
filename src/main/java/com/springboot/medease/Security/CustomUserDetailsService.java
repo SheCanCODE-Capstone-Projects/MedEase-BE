@@ -28,7 +28,7 @@ public class CustomUserDetailsService implements UserDetailsService {
 
         if (user == null) throw new UsernameNotFoundException("User not found");
 
-        String role = user.getUserType() != null ? "ROLE_" + user.getUserType().name() : "ROLE_PATIENT";
+        String role = user.getUserType() != null ? user.getUserType().name() : "ROLE_PATIENT";
         return org.springframework.security.core.userdetails.User
                 .withUsername(user.getEmail() != null ? user.getEmail() : user.getPhoneNumber())
                 .password(user.getPassword())
