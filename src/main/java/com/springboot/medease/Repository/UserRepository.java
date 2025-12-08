@@ -6,16 +6,11 @@ import org.springframework.data.mongodb.repository.Query;
 import java.util.Optional;
 
 public interface UserRepository extends MongoRepository<User, String> {
-    boolean existsByEmail(String email);
-    boolean existsByPhoneNumber(String phoneNumber);
+    boolean existsByPatientsEmail(String email);
+    boolean existsByPharmacistsPharmacyEmail(String email);
+    boolean existsByPharmacistsPhoneNumber(String phone);
+    boolean existsByPatientsPhoneNumber(String phone);
+    boolean existsByPharmacistsPharmacistLicenseNumber(String license);
 
-    @Query("{'pharmacistProfile.pharmacistLicenseNumber': ?0}")
-    Boolean existsByPharmacistProfilePharmacistLicenseNumber(String pharmacistLicenseNumber);
-
-    Optional<User> findByEmail(String email);
-    Optional<User> findByPhoneNumber(String phoneNumber);
-
-    @Query("{'pharmacistProfile.pharmacistLicenseNumber': ?0}")
-    Optional<User> findByPharmacistProfilePharmacistLicenseNumber(String licenseNumber);
 }
 
