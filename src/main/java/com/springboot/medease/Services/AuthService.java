@@ -34,10 +34,12 @@ public class AuthService {
         User container = userRepository.findById(CONTAINER_ID).orElse(new User());
         container.setId(CONTAINER_ID);
 
+        List<PatientProfile> patients = container.getPatients() != null ? container.getPatients() : new ArrayList<>();
+        container.setPatients(patients);
 
-        boolean emailExists = container.getPatients().stream()
+        boolean emailExists = patients.stream()
                 .anyMatch(p -> p.getEmail().equals(req.getEmail()));
-        boolean phoneExists = container.getPatients().stream()
+        boolean phoneExists = patients.stream()
                 .anyMatch(p -> p.getPhoneNumber().equals(req.getPhoneNumber()));
 
         if (emailExists) throw new DuplicateResourceException("Email already exists");
@@ -56,7 +58,7 @@ public class AuthService {
                         container.setPatients(new ArrayList<>());
         }
 
-        container.getPatients().add(profile);
+        patients.add(profile);
 
 
         userRepository.save(container);
@@ -82,10 +84,13 @@ public class AuthService {
                     newContainer.setId(CONTAINER_ID);
                     return newContainer;
                 });
-        boolean emailExists = container.getPharmacists().stream()
+        List<PharmacistProfile> pharmacists = container.getPharmacists() != null ? container.getPharmacists() : new ArrayList<>();
+        container.setPharmacists(pharmacists);
+
+        boolean emailExists = pharmacists.stream()
                               .anyMatch(p -> p.getEmail().equals(req.getEmail().trim()));
 
-        boolean phoneExists = container.getPharmacists().stream()
+        boolean phoneExists = pharmacists.stream()
                        .anyMatch(p -> p.getPhoneNumber().equals(req.getPhoneNumber().trim()));
 
         if (emailExists) throw new DuplicateResourceException("Email already exists");
@@ -101,7 +106,7 @@ public class AuthService {
         profile.setPharmacistLicenseNumber(req.getPharmacistLicenseNumber());
 
 
-        container.getPharmacists().add(profile);
+        pharmacists.add(profile);
 
 
         userRepository.save(container);
@@ -145,7 +150,8 @@ public class AuthService {
 
 
         if (profile == null) {
-            profile = container.getDoctors().stream()
+            List<DoctorProfile> doctors = container.getDoctors() != null ? container.getDoctors() : List.of();
+                   profile = doctors.stream()
                     .filter(d -> isEmail ? d.getEmail().equals(req.getIdentifier()) : d.getPhoneNumber().equals(req.getIdentifier()))
                     .findFirst().orElse(null);
             role = profile != null ? "DOCTOR" : null;
@@ -153,7 +159,8 @@ public class AuthService {
 
 
         if (profile == null) {
-            profile = container.getPharmacists().stream()
+            List<PharmacistProfile> pharmacists = container.getPharmacists() != null ? container.getPharmacists() : List.of();
+                profile = pharmacists.stream()
                     .filter(ph -> isEmail ? ph.getEmail().equals(req.getIdentifier()) : ph.getPhoneNumber().equals(req.getIdentifier()))
                     .findFirst().orElse(null);
             role = profile != null ? "PHARMACIST" : null;
