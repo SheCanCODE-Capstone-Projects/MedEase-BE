@@ -9,8 +9,6 @@ import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import java.time.LocalDateTime;
-import com.springboot.medease.DTOs.*;
-import com.springboot.medease.Models.*;
 
 @Service
 public class AuthService {
@@ -35,7 +33,7 @@ public class AuthService {
         User container = userRepository.findById(CONTAINER_ID).orElse(new User());
         container.setId(CONTAINER_ID);
 
-        // Check duplicate email or phone in existing patients
+
         boolean emailExists = container.getPatients().stream()
                 .anyMatch(p -> p.getEmail().equals(req.getEmail()));
         boolean phoneExists = container.getPatients().stream()
@@ -54,7 +52,7 @@ public class AuthService {
         profile.setInsuranceNumber(req.getInsuranceNumber());
 
         container.getPatients().add(profile);
-        container.setUserType(UserType.ROLE_PATIENT);
+
 
         userRepository.save(container);
 
@@ -73,36 +71,36 @@ public class AuthService {
 
     public AuthResponse registerPharmacist(PharmacistRegisterRequest req) {
 
-        User container = userRepository.findById(CONTAINER_ID).orElse(new User());
-        container.setId(CONTAINER_ID);
-
-        // Check duplicates
-        boolean emailExists = container.getPharmacists().stream()
-                .anyMatch(ph -> ph.getEmail().equals(req.getEmail()));
-        boolean phoneExists = container.getPharmacists().stream()
-                .anyMatch(ph -> ph.getPhoneNumber().equals(req.getPhoneNumber()));
-        boolean licenseExists = container.getPharmacists().stream()
-                .anyMatch(ph -> ph.getPharmacistLicenseNumber().equals(req.getPharmacistLicenseNumber()));
-
-        if (emailExists) throw new DuplicateResourceException("Pharmacy email already exists");
-        if (phoneExists) throw new DuplicateResourceException("Phone number already exists");
-        if (licenseExists) throw new DuplicateResourceException("License number already exists");
+        User container = userRepository.findById(CONTAINER_ID)
+                .orElseGet(() -> {
+                    User newContainer = new User();
+                    newContainer.setId(CONTAINER_ID);
+                    return newContainer;
+                });
 
         PharmacistProfile profile = new PharmacistProfile();
         profile.setFirstName(req.getFirstName());
         profile.setLastName(req.getLastName());
-        profile.setEmail(req.getEmail());
-        profile.setPhoneNumber(req.getPhoneNumber());
+        profile.setEmail(req.getEmail().trim());
+        profile.setPhoneNumber(req.getPhoneNumber().trim());
         profile.setPassword(passwordEncoder.encode(req.getPassword()));
         profile.setPharmacyName(req.getPharmacyName());
         profile.setPharmacistLicenseNumber(req.getPharmacistLicenseNumber());
 
+
         container.getPharmacists().add(profile);
-        container.setUserType(UserType.ROLE_PHARMACIST);
+
 
         userRepository.save(container);
 
-        String token = jwtUtil.generateToken(profile, "PHARMACIST");
+
+        PharmacistProfile savedProfile = container.getPharmacists().stream()
+                .filter(ph -> ph.getEmail().equals(profile.getEmail()))
+                .findFirst()
+                .orElse(profile);
+
+        String token = jwtUtil.generateToken(savedProfile, "PHARMACIST");
+
 
         return new AuthResponse(
                 "User registered successfully",
@@ -122,16 +120,16 @@ public class AuthService {
 
         boolean isEmail = req.getIdentifier().contains("@");
 
-        Object profile = null;
-        String role = null;
+        Object profile ;
+        String role ;
 
-        // Search patient
+
         profile = container.getPatients().stream()
                 .filter(p -> isEmail ? p.getEmail().equals(req.getIdentifier()) : p.getPhoneNumber().equals(req.getIdentifier()))
                 .findFirst().orElse(null);
         role = profile != null ? "PATIENT" : null;
 
-        // Search doctor
+
         if (profile == null) {
             profile = container.getDoctors().stream()
                     .filter(d -> isEmail ? d.getEmail().equals(req.getIdentifier()) : d.getPhoneNumber().equals(req.getIdentifier()))
@@ -139,7 +137,7 @@ public class AuthService {
             role = profile != null ? "DOCTOR" : null;
         }
 
-        // Search pharmacist
+
         if (profile == null) {
             profile = container.getPharmacists().stream()
                     .filter(ph -> isEmail ? ph.getEmail().equals(req.getIdentifier()) : ph.getPhoneNumber().equals(req.getIdentifier()))
@@ -149,7 +147,7 @@ public class AuthService {
 
         if (profile == null) throw new BadCredentialsException("Invalid credentials");
 
-        // Password validation
+
         String encodedPassword = null;
         if (profile instanceof PatientProfile p) encodedPassword = p.getPassword();
         if (profile instanceof DoctorProfile d) encodedPassword = d.getPassword();

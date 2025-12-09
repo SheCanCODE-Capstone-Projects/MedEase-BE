@@ -19,8 +19,6 @@ public class User {
     @Id
     private String id;
 
-    private UserType userType;
-
     private List<PatientProfile> patients = new ArrayList<>();
     private List<DoctorProfile> doctors = new ArrayList<>();
     private List<PharmacistProfile> pharmacists = new ArrayList<>();
