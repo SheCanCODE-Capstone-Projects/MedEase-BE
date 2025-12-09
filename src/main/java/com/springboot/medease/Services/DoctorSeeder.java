@@ -7,6 +7,7 @@ import org.springframework.boot.CommandLineRunner;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 
+import java.util.*;
 import java.util.logging.Logger;
 
 @Component
@@ -31,7 +32,8 @@ public class DoctorSeeder implements CommandLineRunner {
 
         String doctorEmail = "dr.janembabazi123@gmail.com";
 
-        boolean doctorExists = container.getDoctors().stream()
+        List<DoctorProfile> doctors = container.getDoctors() != null ? container.getDoctors() : new ArrayList<>();
+        boolean doctorExists = doctors.stream()
                 .anyMatch(d -> d.getEmail().equals(doctorEmail));
         if (doctorExists) return;
 
