@@ -25,7 +25,10 @@ public class JwtUtil {
     }
 
     public String generateToken(Object profile, String role) {
-        String email = null, phone = null;
+        if (profile == null) {
+                    throw new IllegalArgumentException("Profile cannot be null");
+        }
+        String email , phone ;
 
         if (profile instanceof PatientProfile p) {
             email = p.getEmail();
@@ -36,10 +39,15 @@ public class JwtUtil {
         } else if (profile instanceof PharmacistProfile ph) {
             email = ph.getEmail();
             phone = ph.getPhoneNumber();
+        } else {
+                  throw new IllegalArgumentException("Unsupported profile type: " + profile.getClass().getName());
         }
 
         String subject = email != null ? email : phone;
 
+        if (subject == null) {
+                  throw new IllegalArgumentException("Profile must have either email or phone number");
+        }
         return Jwts.builder()
                 .setSubject(subject)
                 .claim("role", role)
