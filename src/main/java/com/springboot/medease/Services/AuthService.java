@@ -38,9 +38,9 @@ public class AuthService {
         container.setPatients(patients);
 
         boolean emailExists = patients.stream()
-                .anyMatch(p -> p.getEmail().equals(req.getEmail()));
+                .anyMatch(p -> p.getEmail().equals(req.getEmail().trim()));
         boolean phoneExists = patients.stream()
-                .anyMatch(p -> p.getPhoneNumber().equals(req.getPhoneNumber()));
+                .anyMatch(p -> p.getPhoneNumber().equals(req.getPhoneNumber().trim()));
 
         if (emailExists) throw new DuplicateResourceException("Email already exists");
         if (phoneExists) throw new DuplicateResourceException("Phone number already exists");
@@ -136,7 +136,8 @@ public class AuthService {
         User container = userRepository.findById(CONTAINER_ID)
                 .orElseThrow(() -> new BadCredentialsException("Invalid credentials"));
 
-        boolean isEmail = req.getIdentifier().contains("@");
+        String identifier = req.getIdentifier().trim();
+        boolean isEmail = identifier.contains("@");
 
         Object profile ;
         String role ;
@@ -144,7 +145,7 @@ public class AuthService {
 
         List<PatientProfile> patients = container.getPatients() != null ? container.getPatients() : List.of();
         profile = patients.stream()
-                .filter(p -> isEmail ? p.getEmail().equals(req.getIdentifier()) : p.getPhoneNumber().equals(req.getIdentifier()))
+                .filter(p -> isEmail ? p.getEmail().equals(identifier) : p.getPhoneNumber().equals(identifier))
                 .findFirst().orElse(null);
         role = profile != null ? "PATIENT" : null;
 
@@ -152,7 +153,7 @@ public class AuthService {
         if (profile == null) {
             List<DoctorProfile> doctors = container.getDoctors() != null ? container.getDoctors() : List.of();
                    profile = doctors.stream()
-                    .filter(d -> isEmail ? d.getEmail().equals(req.getIdentifier()) : d.getPhoneNumber().equals(req.getIdentifier()))
+                    .filter(d -> isEmail ? d.getEmail().equals(identifier) : d.getPhoneNumber().equals(identifier))
                     .findFirst().orElse(null);
             role = profile != null ? "DOCTOR" : null;
         }
@@ -161,7 +162,7 @@ public class AuthService {
         if (profile == null) {
             List<PharmacistProfile> pharmacists = container.getPharmacists() != null ? container.getPharmacists() : List.of();
                 profile = pharmacists.stream()
-                    .filter(ph -> isEmail ? ph.getEmail().equals(req.getIdentifier()) : ph.getPhoneNumber().equals(req.getIdentifier()))
+                    .filter(ph -> isEmail ? ph.getEmail().equals(identifier) : ph.getPhoneNumber().equals(identifier))
                     .findFirst().orElse(null);
             role = profile != null ? "PHARMACIST" : null;
         }

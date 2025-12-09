@@ -32,20 +32,23 @@ public class CustomUserDetailsService implements UserDetailsService {
         Profile profile ;
         String role ;
 
-        profile = container.getPatients().stream()
+        List<PatientProfile> patients = container.getPatients() != null ? container.getPatients() : List.of();
+        profile = patients.stream()
                 .filter(p -> p.getEmail().equals(identifier) || p.getPhoneNumber().equals(identifier))
                 .findFirst().orElse(null);
         role = profile != null ? "ROLE_PATIENT" : null;
 
         if (profile == null) {
-            profile = container.getDoctors().stream()
+            List<DoctorProfile> doctors = container.getDoctors() != null ? container.getDoctors() : List.of();
+            profile = doctors.stream()
                     .filter(d -> d.getEmail().equals(identifier) || d.getPhoneNumber().equals(identifier))
                     .findFirst().orElse(null);
             role = profile != null ? "ROLE_DOCTOR" : null;
         }
 
         if (profile == null) {
-            profile = container.getPharmacists().stream()
+            List<PharmacistProfile> pharmacists = container.getPharmacists() != null ? container.getPharmacists() : List.of();
+            profile = pharmacists.stream()
                     .filter(ph -> ph.getEmail().equals(identifier) || ph.getPhoneNumber().equals(identifier))
                     .findFirst().orElse(null);
             role = profile != null ? "ROLE_PHARMACIST" : null;
