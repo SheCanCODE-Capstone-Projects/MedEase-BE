@@ -77,6 +77,14 @@ public class AuthService {
                     newContainer.setId(CONTAINER_ID);
                     return newContainer;
                 });
+        boolean emailExists = container.getPharmacists().stream()
+                              .anyMatch(p -> p.getEmail().equals(req.getEmail().trim()));
+
+        boolean phoneExists = container.getPharmacists().stream()
+                       .anyMatch(p -> p.getPhoneNumber().equals(req.getPhoneNumber().trim()));
+
+        if (emailExists) throw new DuplicateResourceException("Email already exists");
+        if (phoneExists) throw new DuplicateResourceException("Phone number already exists");
 
         PharmacistProfile profile = new PharmacistProfile();
         profile.setFirstName(req.getFirstName());
