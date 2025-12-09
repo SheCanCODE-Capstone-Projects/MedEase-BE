@@ -1,5 +1,6 @@
 package com.springboot.medease.DTOs;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.springboot.medease.Models.UserType;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -14,6 +15,8 @@ public class AuthResponse {
     private String message;
     private String userId;
     private String identifier;
+
+    @JsonProperty("role")
     private UserType userType;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
