@@ -6,6 +6,8 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.util.Date;
+
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
@@ -17,4 +19,13 @@ public class PatientRegisterRequest  extends RegisterRequest{
     @NotBlank(message = "Insurance number is required")
     @NotNull(message = "this field must not be null")
     private String insuranceNumber;
+
+    @NotBlank(message = "The date of birth  is required")
+    @NotNull(message = "this field must not be null")
+    private Date dateOfBirth;
+
+    @NotBlank(message = "The gender is required")
+    @NotNull(message = "this field must not be null")
+    private String gender;
+
 }

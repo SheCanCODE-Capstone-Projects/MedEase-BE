@@ -1,10 +1,9 @@
 package com.springboot.medease.Services;
 
 import com.springboot.medease.DTOs.MedicalInfoUpdateRequest;
-import com.springboot.medease.DTOs.PersonalInfoUpdateRequest;
+import com.springboot.medease.DTOs.PatientUpdateRequest;
 import com.springboot.medease.Models.MedicalInfo;
 import com.springboot.medease.Models.Patient;
-import com.springboot.medease.Models.PersonalInfo;
 import com.springboot.medease.Repository.PatientRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -12,28 +11,33 @@ import org.springframework.stereotype.Service;
 @Service
 @RequiredArgsConstructor
 public class PatientService {
-    private final PatientRepository repo;
 
-    public Patient updatePersonalInfo(String patientId, PersonalInfoUpdateRequest dto){
-        Patient patient = repo.findById(patientId)
+    private final PatientRepository patientRepo;
+
+
+    // Update patient personal info (Patient only)
+    public Patient updatePatientInfo(String patientId, PatientUpdateRequest dto) {
+        Patient patient = patientRepo.findById(patientId)
                 .orElseThrow(() -> new RuntimeException("Patient not found"));
 
-        PersonalInfo info = patient.getPersonalInfo();
+        patient.setFirstName(dto.getFirstName());
+        patient.setLastName(dto.getLastName());
+        patient.setEmail(dto.getEmail());
+        patient.setPhoneNumber(dto.getPhoneNumber());
+//        patient.setDateOfBirth(dto.getDateOfBirth());
+//        patient.setGender(dto.getGender());
 
-        if (info == null) info = new PersonalInfo();
+        if (dto.getInsuranceProvider() != null)
+            patient.setUserType(dto.getInsuranceProvider().isEmpty() ? patient.getUserType() : patient.getUserType());
 
-        info.setName(dto.getName());
-        info.setPhone(dto.getPhone());
-        info.setEmail(dto.getEmail());
-        info.setDateOfBirth(dto.getDateOfBirth());
-        info.setGender(dto.getGender());
-        info.setInsuranceProvider(dto.getInsuranceProvider());
 
-        patient.setPersonalInfo(info);
-        return repo.save(patient);
+        return patientRepo.save(patient);
     }
+
+
+    // Update medical info (Doctor only)
     public Patient updateMedicalInfo(String patientId, MedicalInfoUpdateRequest dto, String doctorId) {
-        Patient patient = repo.findById(patientId)
+        Patient patient = patientRepo.findById(patientId)
                 .orElseThrow(() -> new RuntimeException("Patient not found"));
 
         MedicalInfo medicalInfo = patient.getMedicalInfo();
@@ -44,9 +48,11 @@ public class PatientService {
         medicalInfo.setUpdatedByDoctorId(doctorId);
 
         patient.setMedicalInfo(medicalInfo);
-
-        return repo.save(patient);
+        return patientRepo.save(patient);
     }
 
-
-}
+    // Fetch patient by ID
+    public Patient getById(String patientId) {
+        return patientRepo.findById(patientId)
+                .orElseThrow(() -> new RuntimeException("Patient not found"));
+    }}

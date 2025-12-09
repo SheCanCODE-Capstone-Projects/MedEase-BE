@@ -4,12 +4,9 @@ import lombok.Data;
 import org.springframework.data.annotation.Id;
 
 @Data
-public class Patient {
+public class Patient extends Profile {
     @Id
     private String id;
-
-
-    private PersonalInfo personalInfo;
 
     private MedicalInfo medicalInfo;
 
