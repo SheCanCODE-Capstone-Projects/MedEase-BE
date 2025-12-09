@@ -53,21 +53,10 @@ public class CustomUserDetailsService implements UserDetailsService {
 
         if (profile == null) throw new UsernameNotFoundException("User not found");
 
-//        String password = null;
-//        if (profile instanceof PatientProfile p) password = p.getPassword();
-//        if (profile instanceof DoctorProfile d) password = d.getPassword();
-//        if (profile instanceof PharmacistProfile ph) password = ph.getPassword();
-//
-//        if (profile instanceof PharmacistProfile) role = "ROLE_PHARMACIST";
-//        else if (profile instanceof DoctorProfile) role = "ROLE_DOCTOR";
-//        else role = "ROLE_PATIENT";
-
-
         List<GrantedAuthority> authorities = List.of(new SimpleGrantedAuthority(role));
         return new org.springframework.security.core.userdetails.User(
                 profile.getEmail(),
                 profile.getPassword(),
-//                new ArrayList<>()
                 authorities
         );
 

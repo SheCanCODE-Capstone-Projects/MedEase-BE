@@ -46,6 +46,9 @@ public class DoctorSeeder implements CommandLineRunner {
         doctorProfile.setDoctorSpecialization("Cardiology");
         doctorProfile.setDoctorLicenseNumber("DOC-987654");
 
+        if (container.getDoctors() == null) {
+            container.setDoctors(new ArrayList<>());
+        }
         container.getDoctors().add(doctorProfile);
         userRepository.save(container);
 

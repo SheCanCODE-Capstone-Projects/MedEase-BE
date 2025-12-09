@@ -9,6 +9,7 @@ import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import java.time.LocalDateTime;
+import java.util.*;
 
 @Service
 public class AuthService {
@@ -50,6 +51,10 @@ public class AuthService {
         profile.setPassword(passwordEncoder.encode(req.getPassword()));
         profile.setInsuranceProvider(req.getInsuranceProvider());
         profile.setInsuranceNumber(req.getInsuranceNumber());
+
+        if (container.getPatients() == null) {
+                        container.setPatients(new ArrayList<>());
+        }
 
         container.getPatients().add(profile);
 
@@ -132,7 +137,8 @@ public class AuthService {
         String role ;
 
 
-        profile = container.getPatients().stream()
+        List<PatientProfile> patients = container.getPatients() != null ? container.getPatients() : List.of();
+        profile = patients.stream()
                 .filter(p -> isEmail ? p.getEmail().equals(req.getIdentifier()) : p.getPhoneNumber().equals(req.getIdentifier()))
                 .findFirst().orElse(null);
         role = profile != null ? "PATIENT" : null;
