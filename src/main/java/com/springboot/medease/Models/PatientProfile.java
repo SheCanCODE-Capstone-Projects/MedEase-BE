@@ -11,10 +11,10 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 public class PatientProfile extends Profile {
 
-    @NotBlank(message = "name the insurance provider you use")
+    @NotBlank(message = "Insurance provider is required")
     @NotNull(message = "this field must not be null")
     private String insuranceProvider;
-    @NotBlank(message = "provide the card number")
+    @NotBlank(message = "Insurance number is required")
     @NotNull(message = "this field must not be null")
     private String insuranceNumber;
 }
