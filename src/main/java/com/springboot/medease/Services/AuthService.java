@@ -2,154 +2,192 @@ package com.springboot.medease.Services;
 
 import com.springboot.medease.DTOs.*;
 import com.springboot.medease.GlobalException.DuplicateResourceException;
-import com.springboot.medease.Models.PatientProfile;
-import com.springboot.medease.Models.PharmacistProfile;
-import com.springboot.medease.Models.User;
-import com.springboot.medease.Models.UserType;
+import com.springboot.medease.Models.*;
 import com.springboot.medease.Repository.UserRepository;
 import com.springboot.medease.Security.JwtUtil;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import java.time.LocalDateTime;
-import java.util.Optional;
+import java.util.*;
 
 @Service
 public class AuthService {
 
-    @Autowired
-    private UserRepository userRepository;
+    private final UserRepository userRepository;
+    private final PasswordEncoder passwordEncoder;
+    private final JwtUtil jwtUtil;
 
-    @Autowired
-    private PasswordEncoder passwordEncoder;
+    // ID of the container document (singleton)
+    private static final String CONTAINER_ID = "MAIN_USER_CONTAINER";
 
-    @Autowired
-    private JwtUtil jwtUtil;
-
-    public AuthResponse registerPatient(RegisterRequest req) {
-
-        if (userRepository.existsByEmail(req.getEmail())) {
-            throw new DuplicateResourceException("Email already exists");
-        }
-        if (userRepository.existsByPhoneNumber(req.getPhoneNumber())) {
-            throw new DuplicateResourceException("Phone number already exists");
-        }
-
-        PatientProfile patientProfile = new PatientProfile();
-        patientProfile.setFirstName(req.getFirstName());
-        patientProfile.setLastName(req.getLastName());
-        patientProfile.setInsuranceProvider(req.getInsuranceProvider());
-        patientProfile.setInsuranceNumber(req.getInsuranceNumber());
-
-
-        User user = new User();
-        user.setFirstName(req.getFirstName());
-        user.setLastName(req.getLastName());
-        user.setEmail(req.getEmail());
-        user.setPhoneNumber(req.getPhoneNumber());
-        user.setPassword(passwordEncoder.encode(req.getPassword()));
-        user.setUserType(UserType.ROLE_PATIENT);
-        user.setPatientProfile(patientProfile);
-        user.setCreatedAt(LocalDateTime.now());
-        user.setUpdatedAt(LocalDateTime.now());
-
-
-        userRepository.save(user);
-
-        String token = jwtUtil.generateToken(user);
-
-        return new AuthResponse("User registered successfully",
-                user.getId(),
-                user.getEmail(),
-                user.getUserType().name(),
-                user.getCreatedAt(),
-                user.getUpdatedAt(),
-                token);
+    public AuthService(UserRepository userRepository,
+                       PasswordEncoder passwordEncoder,
+                       JwtUtil jwtUtil) {
+        this.userRepository = userRepository;
+        this.passwordEncoder = passwordEncoder;
+        this.jwtUtil = jwtUtil;
     }
 
-    public AuthResponse registerPharmacist(PharmacistRegisterRequest req) {
+    public AuthResponse registerPatient(PatientRegisterRequest req) {
 
-        if (userRepository.existsByEmail(req.getPharmacyEmail())) {
-            throw new DuplicateResourceException("Pharmacy email already exists");
-        }
-        Boolean exists = userRepository.existsByPharmacistProfilePharmacistLicenseNumber(req.getPharmacistLicenseNumber());
-        if (Boolean.TRUE.equals(exists)) {
-            throw new DuplicateResourceException("License number already exists");
-        }
+        User container = userRepository.findById(CONTAINER_ID).orElse(new User());
+        container.setId(CONTAINER_ID);
 
-        if (userRepository.existsByPhoneNumber(req.getPhoneNumber())) {
-            throw new DuplicateResourceException("Phone number already exists");
-        }
+        List<PatientProfile> patients = container.getPatients() != null ? container.getPatients() : new ArrayList<>();
+        container.setPatients(patients);
 
-        PharmacistProfile profile = new PharmacistProfile();
-        profile.setPharmacistFirstName(req.getPharmacistFirstName());
-        profile.setPharmacistLastName(req.getPharmacistLastName());
-        profile.setPharmacistLicenseNumber(req.getPharmacistLicenseNumber());
-        profile.setPharmacyName(req.getPharmacyName());
-        profile.setPharmacyEmail(req.getPharmacyEmail());
+        boolean emailExists = patients.stream()
+                .anyMatch(p -> p.getEmail().equals(req.getEmail().trim()));
+        boolean phoneExists = patients.stream()
+                .anyMatch(p -> p.getPhoneNumber().equals(req.getPhoneNumber().trim()));
 
-        User user = new User();
-        user.setEmail(req.getPharmacyEmail());
-        user.setPhoneNumber(req.getPhoneNumber());
-        user.setPassword(passwordEncoder.encode(req.getPassword()));
-        user.setUserType(UserType.ROLE_PHARMACIST);
-        user.setPharmacistProfile(profile);
-        user.setCreatedAt(LocalDateTime.now());
-        user.setUpdatedAt(LocalDateTime.now());
+        if (emailExists) throw new DuplicateResourceException("Email already exists");
+        if (phoneExists) throw new DuplicateResourceException("Phone number already exists");
 
+        PatientProfile profile = new PatientProfile();
+        profile.setFirstName(req.getFirstName());
+        profile.setLastName(req.getLastName());
+        profile.setEmail(req.getEmail());
+        profile.setPhoneNumber(req.getPhoneNumber());
+        profile.setPassword(passwordEncoder.encode(req.getPassword()));
+        profile.setInsuranceProvider(req.getInsuranceProvider());
+        profile.setInsuranceNumber(req.getInsuranceNumber());
 
-        userRepository.save(user);
-
-        String token = jwtUtil.generateToken(user);
-
-        return new AuthResponse("Pharmacist registered successfully",
-                user.getId(),
-                user.getEmail(),
-                user.getUserType().name(),
-                user.getCreatedAt(),
-                user.getUpdatedAt(),
-                token);
-    }
-
-    public AuthResponse login(LoginRequest req) {
-
-        Optional<User> opt;
-        if (req.getIdentifier().contains("@")) {
-            opt = userRepository.findByEmail(req.getIdentifier());
-        } else {
-            opt = userRepository.findByPhoneNumber(req.getIdentifier());
+        if (container.getPatients() == null) {
+                        container.setPatients(new ArrayList<>());
         }
 
-        User user = opt.orElseThrow(() -> new BadCredentialsException("Invalid credentials"));
+        patients.add(profile);
 
-        if (!passwordEncoder.matches(req.getPassword(), user.getPassword())) {
-            throw new BadCredentialsException("Invalid credentials");
-        }
 
-        String role = null;
-        if (user.getUserType() != null) {
-            role = user.getUserType().name();
-        } else if (user.getPatientProfile() != null) {
-            role = "ROLE_PATIENT";
-        } else if (user.getDoctorProfile() != null) {
-            role = "ROLE_DOCTOR";
-        } else if (user.getPharmacistProfile() != null) {
-            role = "ROLE_PHARMACIST";
-        }
+        userRepository.save(container);
 
-        String identifier = user.getEmail() != null ? user.getEmail() : user.getPhoneNumber();
-        String token = jwtUtil.generateToken(user);
+        String token = jwtUtil.generateToken(profile, "PATIENT");
 
         return new AuthResponse(
-                "Login successful",
-                user.getId(),
-                identifier,
-                role,
-                user.getCreatedAt(),
-                user.getUpdatedAt(),
+                "User registered successfully",
+                container.getId(),
+                profile.getEmail(),
+                "PATIENT",
+                LocalDateTime.now(),
+                LocalDateTime.now(),
                 token
         );
     }
 
+    public AuthResponse registerPharmacist(PharmacistRegisterRequest req) {
+
+        User container = userRepository.findById(CONTAINER_ID)
+                .orElseGet(() -> {
+                    User newContainer = new User();
+                    newContainer.setId(CONTAINER_ID);
+                    return newContainer;
+                });
+        List<PharmacistProfile> pharmacists = container.getPharmacists() != null ? container.getPharmacists() : new ArrayList<>();
+        container.setPharmacists(pharmacists);
+
+        boolean emailExists = pharmacists.stream()
+                              .anyMatch(p -> p.getEmail().equals(req.getEmail().trim()));
+
+        boolean phoneExists = pharmacists.stream()
+                       .anyMatch(p -> p.getPhoneNumber().equals(req.getPhoneNumber().trim()));
+
+        if (emailExists) throw new DuplicateResourceException("Email already exists");
+        if (phoneExists) throw new DuplicateResourceException("Phone number already exists");
+
+        PharmacistProfile profile = new PharmacistProfile();
+        profile.setFirstName(req.getFirstName());
+        profile.setLastName(req.getLastName());
+        profile.setEmail(req.getEmail().trim());
+        profile.setPhoneNumber(req.getPhoneNumber().trim());
+        profile.setPassword(passwordEncoder.encode(req.getPassword()));
+        profile.setPharmacyName(req.getPharmacyName());
+        profile.setPharmacistLicenseNumber(req.getPharmacistLicenseNumber());
+
+
+        pharmacists.add(profile);
+
+
+        userRepository.save(container);
+
+
+        PharmacistProfile savedProfile = container.getPharmacists().stream()
+                .filter(ph -> ph.getEmail().equals(profile.getEmail()))
+                .findFirst()
+                .orElse(profile);
+
+        String token = jwtUtil.generateToken(savedProfile, "PHARMACIST");
+
+
+        return new AuthResponse(
+                "User registered successfully",
+                container.getId(),
+                profile.getEmail(),
+                "PHARMACIST",
+                LocalDateTime.now(),
+                LocalDateTime.now(),
+                token
+        );
+    }
+
+    public AuthResponse login(LoginRequest req) {
+
+        User container = userRepository.findById(CONTAINER_ID)
+                .orElseThrow(() -> new BadCredentialsException("Invalid credentials"));
+
+        String identifier = req.getIdentifier().trim();
+        boolean isEmail = identifier.contains("@");
+
+        Object profile ;
+        String role ;
+
+
+        List<PatientProfile> patients = container.getPatients() != null ? container.getPatients() : List.of();
+        profile = patients.stream()
+                .filter(p -> isEmail ? p.getEmail().equals(identifier) : p.getPhoneNumber().equals(identifier))
+                .findFirst().orElse(null);
+        role = profile != null ? "PATIENT" : null;
+
+
+        if (profile == null) {
+            List<DoctorProfile> doctors = container.getDoctors() != null ? container.getDoctors() : List.of();
+                   profile = doctors.stream()
+                    .filter(d -> isEmail ? d.getEmail().equals(identifier) : d.getPhoneNumber().equals(identifier))
+                    .findFirst().orElse(null);
+            role = profile != null ? "DOCTOR" : null;
+        }
+
+
+        if (profile == null) {
+            List<PharmacistProfile> pharmacists = container.getPharmacists() != null ? container.getPharmacists() : List.of();
+                profile = pharmacists.stream()
+                    .filter(ph -> isEmail ? ph.getEmail().equals(identifier) : ph.getPhoneNumber().equals(identifier))
+                    .findFirst().orElse(null);
+            role = profile != null ? "PHARMACIST" : null;
+        }
+
+        if (profile == null) throw new BadCredentialsException("Invalid credentials");
+
+
+        String encodedPassword = null;
+        if (profile instanceof PatientProfile p) encodedPassword = p.getPassword();
+        if (profile instanceof DoctorProfile d) encodedPassword = d.getPassword();
+        if (profile instanceof PharmacistProfile ph) encodedPassword = ph.getPassword();
+
+        if (!passwordEncoder.matches(req.getPassword(), encodedPassword))
+            throw new BadCredentialsException("Invalid credentials");
+
+        String token = jwtUtil.generateToken(profile, role);
+
+        return new AuthResponse(
+                "Login successful",
+                container.getId(),
+                isEmail ? ((Profile) profile).getEmail() : ((Profile) profile).getPhoneNumber(),
+                role,
+                container.getCreatedAt(),
+                container.getUpdatedAt(),
+                token
+        );
+    }
 }
