@@ -63,13 +63,13 @@ public class AuthService {
 
         userRepository.save(container);
 
-        String token = jwtUtil.generateToken(profile, "PATIENT");
+        String token = jwtUtil.generateToken(profile, UserType.ROLE_PATIENT);
 
         return new AuthResponse(
                 "User registered successfully",
                 container.getId(),
                 profile.getEmail(),
-                "PATIENT",
+                UserType.ROLE_PATIENT,
                 LocalDateTime.now(),
                 LocalDateTime.now(),
                 token
@@ -117,14 +117,14 @@ public class AuthService {
                 .findFirst()
                 .orElse(profile);
 
-        String token = jwtUtil.generateToken(savedProfile, "PHARMACIST");
+        String token = jwtUtil.generateToken(savedProfile, UserType.ROLE_PHARMACIST);
 
 
         return new AuthResponse(
                 "User registered successfully",
                 container.getId(),
                 profile.getEmail(),
-                "PHARMACIST",
+                UserType.ROLE_PHARMACIST,
                 LocalDateTime.now(),
                 LocalDateTime.now(),
                 token
@@ -140,36 +140,32 @@ public class AuthService {
         boolean isEmail = identifier.contains("@");
 
         Object profile ;
-        String role ;
-
-
+        UserType userType = null;
         List<PatientProfile> patients = container.getPatients() != null ? container.getPatients() : List.of();
         profile = patients.stream()
                 .filter(p -> isEmail ? p.getEmail().equals(identifier) : p.getPhoneNumber().equals(identifier))
-                .findFirst().orElse(null);
-        role = profile != null ? "PATIENT" : null;
-
-
+                .findFirst()
+                .orElse(null);
+        if (profile != null) userType = UserType.ROLE_PATIENT;
         if (profile == null) {
             List<DoctorProfile> doctors = container.getDoctors() != null ? container.getDoctors() : List.of();
-                   profile = doctors.stream()
+            profile = doctors.stream()
                     .filter(d -> isEmail ? d.getEmail().equals(identifier) : d.getPhoneNumber().equals(identifier))
-                    .findFirst().orElse(null);
-            role = profile != null ? "DOCTOR" : null;
+                    .findFirst()
+                    .orElse(null);
+            if (profile != null) userType = UserType.ROLE_DOCTOR;
         }
-
 
         if (profile == null) {
             List<PharmacistProfile> pharmacists = container.getPharmacists() != null ? container.getPharmacists() : List.of();
-                profile = pharmacists.stream()
+            profile = pharmacists.stream()
                     .filter(ph -> isEmail ? ph.getEmail().equals(identifier) : ph.getPhoneNumber().equals(identifier))
-                    .findFirst().orElse(null);
-            role = profile != null ? "PHARMACIST" : null;
+                    .findFirst()
+                    .orElse(null);
+            if (profile != null) userType = UserType.ROLE_PHARMACIST;
         }
 
         if (profile == null) throw new BadCredentialsException("Invalid credentials");
-
-
         String encodedPassword = null;
         if (profile instanceof PatientProfile p) encodedPassword = p.getPassword();
         if (profile instanceof DoctorProfile d) encodedPassword = d.getPassword();
@@ -178,13 +174,14 @@ public class AuthService {
         if (!passwordEncoder.matches(req.getPassword(), encodedPassword))
             throw new BadCredentialsException("Invalid credentials");
 
-        String token = jwtUtil.generateToken(profile, role);
+
+        String token = jwtUtil.generateToken(profile, userType);
 
         return new AuthResponse(
                 "Login successful",
                 container.getId(),
                 isEmail ? ((Profile) profile).getEmail() : ((Profile) profile).getPhoneNumber(),
-                role,
+                userType,
                 container.getCreatedAt(),
                 container.getUpdatedAt(),
                 token
