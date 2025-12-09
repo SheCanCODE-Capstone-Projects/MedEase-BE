@@ -7,7 +7,7 @@ import lombok.NoArgsConstructor;
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
-public class DoctorProfile {
+public class DoctorProfile extends Profile {
     private String doctorSpecialization;
     private String doctorLicenseNumber;
 }
