@@ -21,15 +21,21 @@ public class PatientService {
         Patient patient = patientRepo.findById(patientId)
                 .orElseThrow(() -> new RuntimeException("Patient not found"));
 
-        patient.setFirstName(dto.getFirstName());
-        patient.setLastName(dto.getLastName());
-        patient.setEmail(dto.getEmail());
-        patient.setPhoneNumber(dto.getPhoneNumber());
-        patient.setDateOfBirth(dto.getDateOfBirth());
-        patient.setGender(Gender.valueOf(dto.getGender()));
+        if (dto.getFirstName() != null) patient.setFirstName(dto.getFirstName());
+        if (dto.getLastName() != null) patient.setLastName(dto.getLastName());
+        if (dto.getEmail() != null) patient.setEmail(dto.getEmail());
+        if (dto.getPhoneNumber() != null) patient.setPhoneNumber(dto.getPhoneNumber());
+        if (dto.getDateOfBirth() != null) patient.setDateOfBirth(dto.getDateOfBirth());
+        try {
+            patient.setGender(Gender.valueOf(dto.getGender().toUpperCase()));
+        } catch (IllegalArgumentException e) {
+            throw new IllegalArgumentException("Invalid gender value. Must be one of: MALE, FEMALE, OTHER");
+        }
 
         if (dto.getInsuranceProvider() != null)
-            patient.setUserType(dto.getInsuranceProvider().isEmpty() ? patient.getUserType() : patient.getUserType());
+            patient.setInsuranceProvider(dto.getInsuranceProvider());
+        if (dto.getInsuranceNumber() != null)
+            patient.setInsuranceNumber(dto.getInsuranceNumber());
 
 
         return patientRepo.save(patient);

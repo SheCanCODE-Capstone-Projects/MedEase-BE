@@ -15,9 +15,12 @@ public class Patient extends Profile {
     private MedicalInfo medicalInfo;
 
 
+    public void setInsuranceNumber(String insuranceNumber) {
 
+    }
 
+    public void setInsuranceProvider(String insuranceProvider) {
 
-
+    }
 }
 
