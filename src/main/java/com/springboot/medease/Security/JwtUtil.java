@@ -24,7 +24,7 @@ public class JwtUtil {
         return Keys.hmacShaKeyFor(SECRET_KEY.getBytes());
     }
 
-    public String generateToken(Object profile, String role) {
+    public String generateToken(Object profile, UserType userType) {
         if (profile == null) {
                     throw new IllegalArgumentException("Profile cannot be null");
         }
@@ -50,7 +50,7 @@ public class JwtUtil {
         }
         return Jwts.builder()
                 .setSubject(subject)
-                .claim("role", role)
+                .claim("role", userType)
                 .setIssuedAt(new Date())
                 .setExpiration(new Date(System.currentTimeMillis() + EXPIRATION_TIME))
                 .signWith(getSigningKey(), SignatureAlgorithm.HS256)
