@@ -32,7 +32,7 @@ public class PatientUpdateRequest {
         private String insuranceProvider;
         @Size(max = 50, message = "Insurance number must not exceed 50 characters")
         private String insuranceNumber;
-        @Size(max = 1000, message = "Subjective must not exceed 1000 characters")
+        @Size(max = 1001, message = "Subjective must not exceed 1000 characters")
         private String subjective;
     }
 
