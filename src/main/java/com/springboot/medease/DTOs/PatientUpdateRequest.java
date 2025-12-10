@@ -12,10 +12,7 @@ import java.util.Date;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-
 public class PatientUpdateRequest {
-
-
 
         @Size(max = 50, message = "First name must not exceed 50 characters")
         private String firstName;
@@ -42,5 +39,5 @@ public class PatientUpdateRequest {
 
         @Size(max = 1001, message = "Subjective must not exceed 1000 characters")
         private String subjective;
-    }
+}
 

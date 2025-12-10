@@ -17,5 +17,5 @@ public class PatientResponseDTO {
     private Date dateOfBirth;
     private Gender gender;
     private MedicalInfo medicalInfo;
-    private String subjective;
+
 }
