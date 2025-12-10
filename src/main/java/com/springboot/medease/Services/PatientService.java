@@ -2,7 +2,6 @@ package com.springboot.medease.Services;
 
 import com.springboot.medease.DTOs.MedicalInfoUpdateRequest;
 import com.springboot.medease.DTOs.PatientUpdateRequest;
-import com.springboot.medease.Models.Gender;
 import com.springboot.medease.Models.MedicalInfo;
 import com.springboot.medease.Models.Patient;
 import com.springboot.medease.Repository.PatientRepository;
@@ -32,9 +31,6 @@ public class PatientService {
             patient.setInsuranceProvider(dto.getInsuranceProvider());
         if (dto.getInsuranceNumber() != null)
             patient.setInsuranceNumber(dto.getInsuranceNumber());
-        if (dto.getSubjective() != null)
-            patient.setSubjective(dto.getSubjective());
-
         return patientRepo.save(patient);
     }
 
@@ -65,8 +61,16 @@ public class PatientService {
         return patientRepo.save(patient);
     }
 
+    // Add new patient
+    public Patient addPatient(Patient patient) {
+        return patientRepo.save(patient);
+    }
+
     // Fetch patient by ID
     public Patient getById(String patientId) {
         return patientRepo.findById(patientId)
                 .orElseThrow(() -> new RuntimeException("Patient not found"));
-    }}
+    }
+
+
+}
