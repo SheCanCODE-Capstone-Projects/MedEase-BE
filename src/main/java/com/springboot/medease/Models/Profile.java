@@ -36,14 +36,11 @@ public class Profile {
     @NotBlank(message = "Password is required")
     @Size(min = 6, message = "Password must be at least 6 characters")
     protected String password;
-//
-//    @NotBlank(message = "The date of birth  is required")
-//    @NotNull(message = "this field must not be null")
-//    private Date dateOfBirth;
-//
-//    @NotBlank(message = "The gender is required")
-//    @NotNull(message = "this field must not be null")
-//    private String gender;
+    @NotNull(message = "Date of birth is required")
+    private Date dateOfBirth;
+
+    @NotNull(message = "Gender is required")
+    private Gender gender;
 
     protected UserType userType;
 

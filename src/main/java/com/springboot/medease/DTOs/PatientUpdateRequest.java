@@ -31,7 +31,7 @@ public class PatientUpdateRequest {
         @NotNull(message = "Date of birth is required")
         private Date dateOfBirth;
 
-        @NotBlank(message = "Gender is required")
+        @NotNull(message = "Gender is required")
         private String gender;
 
         private String insuranceProvider;

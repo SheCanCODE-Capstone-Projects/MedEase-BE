@@ -2,6 +2,7 @@ package com.springboot.medease.Services;
 
 import com.springboot.medease.DTOs.MedicalInfoUpdateRequest;
 import com.springboot.medease.DTOs.PatientUpdateRequest;
+import com.springboot.medease.Models.Gender;
 import com.springboot.medease.Models.MedicalInfo;
 import com.springboot.medease.Models.Patient;
 import com.springboot.medease.Repository.PatientRepository;
@@ -24,8 +25,8 @@ public class PatientService {
         patient.setLastName(dto.getLastName());
         patient.setEmail(dto.getEmail());
         patient.setPhoneNumber(dto.getPhoneNumber());
-//        patient.setDateOfBirth(dto.getDateOfBirth());
-//        patient.setGender(dto.getGender());
+        patient.setDateOfBirth(dto.getDateOfBirth());
+        patient.setGender(Gender.valueOf(dto.getGender()));
 
         if (dto.getInsuranceProvider() != null)
             patient.setUserType(dto.getInsuranceProvider().isEmpty() ? patient.getUserType() : patient.getUserType());

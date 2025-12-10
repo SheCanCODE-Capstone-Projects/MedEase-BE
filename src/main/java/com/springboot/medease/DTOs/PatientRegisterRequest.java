@@ -20,7 +20,7 @@ public class PatientRegisterRequest  extends RegisterRequest{
     @NotNull(message = "this field must not be null")
     private String insuranceNumber;
 
-    @NotBlank(message = "The date of birth  is required")
+
     @NotNull(message = "this field must not be null")
     private Date dateOfBirth;
 
