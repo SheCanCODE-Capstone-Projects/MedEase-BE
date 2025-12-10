@@ -14,6 +14,8 @@ public class Patient extends PatientProfile {
 
     private MedicalInfo medicalInfo;
     private String subjective;
+    private String insuranceProvider;
+    private String insuranceNumber;
 
 }
 
