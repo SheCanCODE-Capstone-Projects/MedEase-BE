@@ -26,13 +26,17 @@ public class PatientController {
 
     // Update personal info (Patient)
     @PutMapping("/{id}/update-personal")
-    @PreAuthorize("hasRole('PATIENT') and #id == authentication.name")
+    @PreAuthorize("hasRole('PATIENT')")
     public PatientResponseDTO updatePersonalInfo(
             @PathVariable String id,
             @RequestBody  @Valid PatientUpdateRequest dto,
             Authentication authentication
     ) {
-        Patient patient = patientService.updatePatientInfo(id, dto);
+        Patient patient = patientService.getById(id);
+        if (!patient.getEmail().equals(authentication.getName())) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Access denied");
+        }
+        patient = patientService.updatePatientInfo(id, dto);
         return mapToResponseDTO(patient);
     }
 
@@ -56,9 +60,14 @@ public class PatientController {
 
     // Fetch patient by ID
     @GetMapping("/{id}")
-    @PreAuthorize("hasRole('DOCTOR') or hasRole('ADMIN') or authentication.name == #id")
+    @PreAuthorize("hasRole('DOCTOR') or hasRole('ADMIN') or hasRole('PATIENT')")
     public PatientResponseDTO getPatient(@PathVariable String id, Authentication authentication) {
         Patient patient = patientService.getById(id);
+        if (authentication.getAuthorities().stream().noneMatch(a -> a.getAuthority().equals("ROLE_DOCTOR") || a.getAuthority().equals("ROLE_ADMIN"))) {
+            if (!patient.getEmail().equals(authentication.getName())) {
+                throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Access denied");
+            }
+        }
         return mapToResponseDTO(patient);
     }
 
