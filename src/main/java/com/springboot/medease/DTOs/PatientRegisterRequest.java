@@ -1,5 +1,6 @@
 package com.springboot.medease.DTOs;
 
+import com.springboot.medease.Models.Gender;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
@@ -24,8 +25,8 @@ public class PatientRegisterRequest  extends RegisterRequest{
     @NotNull(message = "this field must not be null")
     private Date dateOfBirth;
 
-    @NotBlank(message = "The gender is required")
+
     @NotNull(message = "this field must not be null")
-    private String gender;
+    private Gender gender;
 
 }

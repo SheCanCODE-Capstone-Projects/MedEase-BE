@@ -5,6 +5,8 @@ import com.springboot.medease.DTOs.PatientUpdateRequest;
 import com.springboot.medease.Models.Patient;
 import com.springboot.medease.Services.PatientService;
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotBlank;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 
@@ -21,7 +23,7 @@ public class PatientController {
     @PutMapping("/{id}/update-personal")
     public Patient updatePersonalInfo(
             @PathVariable String id,
-            @RequestBody PatientUpdateRequest dto,
+            @RequestBody  @Valid PatientUpdateRequest dto,
             HttpServletRequest request
     ) {
 
@@ -33,8 +35,8 @@ public class PatientController {
     @PutMapping("/{id}/update-medical")
     public Patient updateMedicalInfo(
             @PathVariable String id,
-            @RequestBody MedicalInfoUpdateRequest dto,
-            @RequestHeader("doctor-id") String doctorId
+            @RequestBody @Valid  MedicalInfoUpdateRequest dto,
+            @RequestHeader("doctor-id") @NotBlank String doctorId
     ) {
         return patientService.updateMedicalInfo(id, dto, doctorId);
     }
