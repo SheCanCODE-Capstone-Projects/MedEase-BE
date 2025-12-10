@@ -3,11 +3,14 @@ package com.springboot.medease.Models;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.springframework.data.mongodb.core.index.Indexed;
+
+import java.util.Date;
 
 @Data
 @AllArgsConstructor
@@ -33,6 +36,11 @@ public class Profile {
     @NotBlank(message = "Password is required")
     @Size(min = 6, message = "Password must be at least 6 characters")
     protected String password;
+    @NotNull(message = "Date of birth is required")
+    private Date dateOfBirth;
+
+    @NotNull(message = "Gender is required")
+    private Gender gender;
 
     protected UserType userType;
 

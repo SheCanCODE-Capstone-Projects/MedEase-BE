@@ -3,6 +3,7 @@ package com.springboot.medease.Services;
 import com.springboot.medease.DTOs.*;
 import com.springboot.medease.GlobalException.DuplicateResourceException;
 import com.springboot.medease.Models.*;
+import com.springboot.medease.Repository.PatientRepository;
 import com.springboot.medease.Repository.UserRepository;
 import com.springboot.medease.Security.JwtUtil;
 import org.springframework.security.authentication.BadCredentialsException;
@@ -17,16 +18,21 @@ public class AuthService {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtUtil jwtUtil;
+    private final PatientService patientService;
+    private final PatientRepository patientRepository;
 
     // ID of the container document (singleton)
     private static final String CONTAINER_ID = "MAIN_USER_CONTAINER";
 
     public AuthService(UserRepository userRepository,
                        PasswordEncoder passwordEncoder,
-                       JwtUtil jwtUtil) {
+                       JwtUtil jwtUtil,
+                       PatientService patientService , PatientRepository patientRepository) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
         this.jwtUtil = jwtUtil;
+        this.patientService = patientService;
+        this.patientRepository = patientRepository;
     }
 
     public AuthResponse registerPatient(PatientRegisterRequest req) {
@@ -50,6 +56,8 @@ public class AuthService {
         profile.setLastName(req.getLastName());
         profile.setEmail(req.getEmail());
         profile.setPhoneNumber(req.getPhoneNumber());
+        profile.setDateOfBirth(req.getDateOfBirth());
+        profile.setGender(req.getGender());
         profile.setPassword(passwordEncoder.encode(req.getPassword()));
         profile.setInsuranceProvider(req.getInsuranceProvider());
         profile.setInsuranceNumber(req.getInsuranceNumber());
@@ -62,6 +70,26 @@ public class AuthService {
 
 
         userRepository.save(container);
+
+      Patient patient = new Patient();
+      patient.setFirstName(req.getFirstName());
+      patient.setLastName(req.getLastName());
+      patient.setEmail(req.getEmail());
+      patient.setGender(req.getGender());
+      patient.setPassword(passwordEncoder.encode(req.getPassword()));
+        patient.setPhoneNumber(profile.getPhoneNumber());
+        patient.setDateOfBirth(profile.getDateOfBirth());
+        patient.setGender(profile.getGender());
+       patient.setInsuranceProvider(profile.getInsuranceProvider());
+       patient.setInsuranceNumber(profile.getInsuranceNumber());
+       patient.setUserType(UserType.ROLE_PATIENT);
+
+
+
+
+      patientRepository.save(patient);
+
+
 
         String token = jwtUtil.generateToken(profile, UserType.ROLE_PATIENT);
 
