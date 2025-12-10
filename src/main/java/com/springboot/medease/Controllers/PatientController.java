@@ -56,7 +56,8 @@ public class PatientController {
 
     // Fetch patient by ID
     @GetMapping("/{id}")
-    public PatientResponseDTO getPatient(@PathVariable String id) {
+    @PreAuthorize("hasRole('DOCTOR') or hasRole('ADMIN') or authentication.name == #id")
+    public PatientResponseDTO getPatient(@PathVariable String id, Authentication authentication) {
         Patient patient = patientService.getById(id);
         return mapToResponseDTO(patient);
     }
@@ -71,6 +72,7 @@ public class PatientController {
         dto.setDateOfBirth(patient.getDateOfBirth());
         dto.setGender(patient.getGender());
         dto.setMedicalInfo(patient.getMedicalInfo());
+        dto.setSubjective(patient.getSubjective());
         return dto;
     }
 }

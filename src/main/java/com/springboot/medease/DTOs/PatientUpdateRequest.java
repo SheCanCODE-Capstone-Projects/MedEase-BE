@@ -28,5 +28,6 @@ public class PatientUpdateRequest {
 
         private String insuranceProvider;
         private String insuranceNumber;
+        private String subjective;
     }
 

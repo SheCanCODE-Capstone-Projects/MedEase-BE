@@ -16,4 +16,5 @@ public class PatientResponseDTO {
     private java.util.Date dateOfBirth;
     private Gender gender;
     private MedicalInfo medicalInfo;
+    private String subjective;
 }

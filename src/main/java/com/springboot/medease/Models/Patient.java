@@ -13,14 +13,7 @@ public class Patient extends PatientProfile {
     private String id;
 
     private MedicalInfo medicalInfo;
+    private String subjective;
 
-
-//    public void setInsuranceNumber(String insuranceNumber) {
-//
-//    }
-//
-//    public void setInsuranceProvider(String insuranceProvider) {
-//
-//    }
 }
 

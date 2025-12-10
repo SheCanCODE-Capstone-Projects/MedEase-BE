@@ -32,7 +32,8 @@ public class PatientService {
             patient.setInsuranceProvider(dto.getInsuranceProvider());
         if (dto.getInsuranceNumber() != null)
             patient.setInsuranceNumber(dto.getInsuranceNumber());
-
+        if (dto.getSubjective() != null)
+            patient.setSubjective(dto.getSubjective());
 
         return patientRepo.save(patient);
     }
@@ -46,9 +47,19 @@ public class PatientService {
         MedicalInfo medicalInfo = patient.getMedicalInfo();
         if (medicalInfo == null) medicalInfo = new MedicalInfo();
 
-        medicalInfo.setChronicDiseases(dto.getChronicDiseases());
-        medicalInfo.setMedicationAllergies(dto.getMedicationAllergies());
-        medicalInfo.setUpdatedByDoctorId(doctorId);
+        boolean updated = false;
+        if (dto.getChronicDiseases() != null) {
+            medicalInfo.setChronicDiseases(dto.getChronicDiseases());
+            updated = true;
+        }
+        if (dto.getMedicationAllergies() != null) {
+            medicalInfo.setMedicationAllergies(dto.getMedicationAllergies());
+            updated = true;
+        }
+        
+        if (updated) {
+            medicalInfo.setUpdatedByDoctorId(doctorId);
+        }
 
         patient.setMedicalInfo(medicalInfo);
         return patientRepo.save(patient);
