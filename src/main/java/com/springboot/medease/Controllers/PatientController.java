@@ -81,7 +81,6 @@ public class PatientController {
         dto.setDateOfBirth(patient.getDateOfBirth());
         dto.setGender(patient.getGender());
         dto.setMedicalInfo(patient.getMedicalInfo());
-        dto.setSubjective(patient.getSubjective());
         return dto;
     }
 }
