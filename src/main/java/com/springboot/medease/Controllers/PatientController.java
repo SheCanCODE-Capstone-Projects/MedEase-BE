@@ -26,12 +26,12 @@ public class PatientController {
 
     // Update personal info (Patient)
     @PutMapping("/{id}/update-personal")
+    @PreAuthorize("hasRole('PATIENT') and #id == authentication.name")
     public PatientResponseDTO updatePersonalInfo(
             @PathVariable String id,
             @RequestBody  @Valid PatientUpdateRequest dto,
-            HttpServletRequest request
+            Authentication authentication
     ) {
-
         Patient patient = patientService.updatePatientInfo(id, dto);
         return mapToResponseDTO(patient);
     }
