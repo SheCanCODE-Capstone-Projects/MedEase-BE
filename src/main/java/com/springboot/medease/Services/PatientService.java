@@ -26,11 +26,7 @@ public class PatientService {
         if (dto.getEmail() != null) patient.setEmail(dto.getEmail());
         if (dto.getPhoneNumber() != null) patient.setPhoneNumber(dto.getPhoneNumber());
         if (dto.getDateOfBirth() != null) patient.setDateOfBirth(dto.getDateOfBirth());
-        try {
-            patient.setGender(Gender.valueOf(dto.getGender().toUpperCase()));
-        } catch (IllegalArgumentException e) {
-            throw new IllegalArgumentException("Invalid gender value. Must be one of: MALE, FEMALE, OTHER");
-        }
+        if (dto.getGender() != null) patient.setGender(dto.getGender());
 
         if (dto.getInsuranceProvider() != null)
             patient.setInsuranceProvider(dto.getInsuranceProvider());

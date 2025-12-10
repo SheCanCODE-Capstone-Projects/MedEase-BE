@@ -1,5 +1,6 @@
 package com.springboot.medease.DTOs;
 
+import com.springboot.medease.Models.Gender;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -17,24 +18,13 @@ public class PatientUpdateRequest {
 
 
 
-        @NotBlank(message = "First name is required")
         private String firstName;
-
-        @NotBlank(message = "Last name is required")
         private String lastName;
-
-        @NotBlank(message = "Email is required")
         @Email(message = "Email must be valid")
         private String email;
-
-        @NotBlank(message = "Phone number is required")
         private String phoneNumber;
-
-        @NotNull(message = "Date of birth is required")
         private Date dateOfBirth;
-
-        @NotNull(message = "Gender is required")
-        private String gender;
+        private Gender gender;
 
         private String insuranceProvider;
         private String insuranceNumber;

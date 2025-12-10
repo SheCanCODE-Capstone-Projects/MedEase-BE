@@ -8,19 +8,19 @@ import java.util.Date;
 
 @Data
 @Document(collection = "patients")
-public class Patient extends Profile {
+public class Patient extends PatientProfile {
     @Id
     private String id;
 
     private MedicalInfo medicalInfo;
 
 
-    public void setInsuranceNumber(String insuranceNumber) {
-
-    }
-
-    public void setInsuranceProvider(String insuranceProvider) {
-
-    }
+//    public void setInsuranceNumber(String insuranceNumber) {
+//
+//    }
+//
+//    public void setInsuranceProvider(String insuranceProvider) {
+//
+//    }
 }
 
