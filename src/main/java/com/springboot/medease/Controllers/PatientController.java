@@ -4,7 +4,7 @@ import com.springboot.medease.DTOs.MedicalInfoUpdateRequest;
 import com.springboot.medease.DTOs.PatientResponseDTO;
 import com.springboot.medease.DTOs.PatientUpdateRequest;
 import com.springboot.medease.Models.Patient;
-import com.springboot.medease.Repository.PatientRepository;
+
 import com.springboot.medease.Services.PatientService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
@@ -23,7 +23,6 @@ import org.springframework.web.server.ResponseStatusException;
 public class PatientController {
 
     private final PatientService patientService;
-    private final PatientRepository patientRepo;
 
 
     // Update personal info (Patient)
@@ -63,7 +62,7 @@ public class PatientController {
     // Add new patient (Admin/Doctor)
     @PostMapping()
     @PreAuthorize("hasRole('ADMIN') or hasRole('DOCTOR')")
-    public PatientResponseDTO addPatient(@Valid PatientUpdateRequest dto) {
+    public PatientResponseDTO addPatient(@RequestBody @Valid PatientUpdateRequest dto) {
         return patientService.addPatient(dto);
     }
 

@@ -7,7 +7,9 @@ import com.springboot.medease.Models.MedicalInfo;
 import com.springboot.medease.Models.Patient;
 import com.springboot.medease.Repository.PatientRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.dao.DuplicateKeyException;
 import org.springframework.stereotype.Service;
+import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
@@ -88,6 +90,8 @@ public class PatientService {
         dto.setPhoneNumber(patient.getPhoneNumber());
         dto.setDateOfBirth(patient.getDateOfBirth());
         dto.setGender(patient.getGender());
+        dto.setInsuranceProvider(patient.getInsuranceProvider());
+        dto.setInsuranceNumber(patient.getInsuranceNumber());
         dto.setMedicalInfo(patient.getMedicalInfo());
         return dto;
     }
@@ -99,11 +103,7 @@ public class PatientService {
     }
 
     private String generatePatientReference() {
-        String reference;
-        do {
-            reference = "PAT" + System.currentTimeMillis() + (int)(Math.random() * 1000);
-        } while (patientRepo.existsByPatientReference(reference));
-        return reference;
+        return "PAT-" + System.currentTimeMillis() + "-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase();
     }
 
     public Patient getByReference(String reference) {

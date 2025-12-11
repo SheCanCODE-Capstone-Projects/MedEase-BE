@@ -4,6 +4,7 @@ import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
 import io.jsonwebtoken.security.Keys;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 import javax.crypto.SecretKey;
@@ -12,7 +13,17 @@ import java.util.Date;
 @Component
 public class JwtUtil {
     
-    private final SecretKey key = Keys.hmacShaKeyFor("mySecretKeyThatIsAtLeast32CharactersLong123456789".getBytes());
+    private final SecretKey key;
+    
+    public JwtUtil(@Value("${jwt.secret:}") String jwtSecret) {
+        if (jwtSecret == null || jwtSecret.trim().isEmpty()) {
+            throw new IllegalArgumentException("JWT secret must be provided via jwt.secret property or JWT_SECRET environment variable");
+        }
+        if (jwtSecret.length() < 32) {
+            throw new IllegalArgumentException("JWT secret must be at least 32 characters long");
+        }
+        this.key = Keys.hmacShaKeyFor(jwtSecret.getBytes());
+    }
     private final long expiration = 86400000; // 24 hours
 
     public String generateToken(String username, String role) {

@@ -17,6 +17,8 @@ public class PatientResponseDTO {
     private String phoneNumber;
     private Date dateOfBirth;
     private Gender gender;
+    private String insuranceProvider;
+    private String insuranceNumber;
     private MedicalInfo medicalInfo;
 
 }
