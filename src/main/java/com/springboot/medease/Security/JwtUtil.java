@@ -15,7 +15,7 @@ public class JwtUtil {
     
     private final SecretKey key;
     
-    public JwtUtil(@Value("${jwt.secret:}") String jwtSecret) {
+    public JwtUtil(@Value("${app.jwt.secret:}") String jwtSecret) {
         if (jwtSecret == null || jwtSecret.trim().isEmpty()) {
             throw new IllegalArgumentException("JWT secret must be provided via jwt.secret property or JWT_SECRET environment variable");
         }

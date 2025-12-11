@@ -86,18 +86,11 @@ public class AuthService {
       patient.setUserType(UserType.ROLE_PATIENT);
       patient.setPatientReference(generateUniqueReference());
 
-
-
-
-
-
       patientRepository.save(patient);
 
+      String token = jwtUtil.generateToken(profile.getEmail(), "ROLE_PATIENT");
 
-
-        String token = jwtUtil.generateToken(profile.getEmail(), "ROLE_PATIENT");
-
-        return new AuthResponse(
+      return new AuthResponse(
                 "User registered successfully",
                 container.getId(),
                 profile.getEmail(),

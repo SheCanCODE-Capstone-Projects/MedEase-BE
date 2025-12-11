@@ -16,7 +16,7 @@ public class Patient extends PatientProfile {
     @Field("medicalInfo")
     private MedicalInfo medicalInfo;
 
-    @Field("patientReference")
+    @Field("patientRef")
     @org.springframework.data.mongodb.core.index.Indexed(unique = true)
     private String patientReference;
 

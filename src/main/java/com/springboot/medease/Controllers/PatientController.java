@@ -62,8 +62,8 @@ public class PatientController {
     // Add new patient (Admin/Doctor)
     @PostMapping()
     @PreAuthorize("hasRole('ADMIN') or hasRole('DOCTOR')")
-    public PatientResponseDTO addPatient(@RequestBody @Valid PatientUpdateRequest dto) {
-        return patientService.addPatient(dto);
+    public PatientResponseDTO addPatient(@RequestBody @Valid PatientUpdateRequest dto, Authentication authentication) {
+        return patientService.addPatientByDoctor(dto, authentication.getName());
     }
 
     // Fetch patient by ID
