@@ -1,6 +1,7 @@
 package com.springboot.medease.Services;
 
 import com.springboot.medease.DTOs.MedicalInfoUpdateRequest;
+import com.springboot.medease.DTOs.PatientResponseDTO;
 import com.springboot.medease.DTOs.PatientUpdateRequest;
 import com.springboot.medease.Models.MedicalInfo;
 import com.springboot.medease.Models.Patient;
@@ -62,8 +63,33 @@ public class PatientService {
     }
 
     // Add new patient
-    public Patient addPatient(Patient patient) {
-        return patientRepo.save(patient);
+    public PatientResponseDTO addPatient(PatientUpdateRequest dto) {
+        Patient patient = new Patient();
+        patient.setPatientReference(generatePatientReference());
+        patient.setFirstName(dto.getFirstName());
+        patient.setLastName(dto.getLastName());
+        patient.setEmail(dto.getEmail());
+        patient.setPhoneNumber(dto.getPhoneNumber());
+        patient.setDateOfBirth(dto.getDateOfBirth());
+        patient.setGender(dto.getGender());
+        patient.setInsuranceProvider(dto.getInsuranceProvider());
+        patient.setInsuranceNumber(dto.getInsuranceNumber());
+        
+        return mapToDTO(patientRepo.save(patient));
+    }
+
+    private PatientResponseDTO mapToDTO(Patient patient) {
+        PatientResponseDTO dto = new PatientResponseDTO();
+        dto.setId(patient.getId());
+        dto.setPatientReference(patient.getPatientReference());
+        dto.setFirstName(patient.getFirstName());
+        dto.setLastName(patient.getLastName());
+        dto.setEmail(patient.getEmail());
+        dto.setPhoneNumber(patient.getPhoneNumber());
+        dto.setDateOfBirth(patient.getDateOfBirth());
+        dto.setGender(patient.getGender());
+        dto.setMedicalInfo(patient.getMedicalInfo());
+        return dto;
     }
 
     // Fetch patient by ID
@@ -72,5 +98,17 @@ public class PatientService {
                 .orElseThrow(() -> new RuntimeException("Patient not found"));
     }
 
+    private String generatePatientReference() {
+        String reference;
+        do {
+            reference = "PAT" + System.currentTimeMillis() + (int)(Math.random() * 1000);
+        } while (patientRepo.existsByPatientReference(reference));
+        return reference;
+    }
+
+    public Patient getByReference(String reference) {
+        return patientRepo.findByPatientReference(reference)
+                .orElseThrow(() -> new RuntimeException("Patient not found with reference: " + reference));
+    }
 
 }

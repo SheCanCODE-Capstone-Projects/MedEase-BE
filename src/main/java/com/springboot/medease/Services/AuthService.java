@@ -11,6 +11,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import java.time.LocalDateTime;
 import java.util.*;
+import java.util.Collections;
 
 @Service
 public class AuthService {
@@ -77,12 +78,15 @@ public class AuthService {
       patient.setEmail(req.getEmail());
       patient.setGender(req.getGender());
       patient.setPassword(passwordEncoder.encode(req.getPassword()));
-        patient.setPhoneNumber(profile.getPhoneNumber());
-        patient.setDateOfBirth(profile.getDateOfBirth());
-        patient.setGender(profile.getGender());
-       patient.setInsuranceProvider(profile.getInsuranceProvider());
-       patient.setInsuranceNumber(profile.getInsuranceNumber());
-       patient.setUserType(UserType.ROLE_PATIENT);
+      patient.setPhoneNumber(profile.getPhoneNumber());
+      patient.setDateOfBirth(profile.getDateOfBirth());
+      patient.setGender(profile.getGender());
+      patient.setInsuranceProvider(profile.getInsuranceProvider());
+      patient.setInsuranceNumber(profile.getInsuranceNumber());
+      patient.setUserType(UserType.ROLE_PATIENT);
+      patient.setPatientReference(generateUniqueReference());
+
+
 
 
 
@@ -91,7 +95,7 @@ public class AuthService {
 
 
 
-        String token = jwtUtil.generateToken(profile, UserType.ROLE_PATIENT);
+        String token = jwtUtil.generateToken(profile.getEmail(), "ROLE_PATIENT");
 
         return new AuthResponse(
                 "User registered successfully",
@@ -145,7 +149,7 @@ public class AuthService {
                 .findFirst()
                 .orElse(profile);
 
-        String token = jwtUtil.generateToken(savedProfile, UserType.ROLE_PHARMACIST);
+        String token = jwtUtil.generateToken(savedProfile.getEmail(), "ROLE_PHARMACIST");
 
 
         return new AuthResponse(
@@ -169,14 +173,14 @@ public class AuthService {
 
         Object profile ;
         UserType userType = null;
-        List<PatientProfile> patients = container.getPatients() != null ? container.getPatients() : List.of();
+        List<PatientProfile> patients = container.getPatients() != null ? container.getPatients() : Collections.emptyList();
         profile = patients.stream()
                 .filter(p -> isEmail ? p.getEmail().equals(identifier) : p.getPhoneNumber().equals(identifier))
                 .findFirst()
                 .orElse(null);
         if (profile != null) userType = UserType.ROLE_PATIENT;
         if (profile == null) {
-            List<DoctorProfile> doctors = container.getDoctors() != null ? container.getDoctors() : List.of();
+            List<DoctorProfile> doctors = container.getDoctors() != null ? container.getDoctors() : Collections.emptyList();
             profile = doctors.stream()
                     .filter(d -> isEmail ? d.getEmail().equals(identifier) : d.getPhoneNumber().equals(identifier))
                     .findFirst()
@@ -185,7 +189,7 @@ public class AuthService {
         }
 
         if (profile == null) {
-            List<PharmacistProfile> pharmacists = container.getPharmacists() != null ? container.getPharmacists() : List.of();
+            List<PharmacistProfile> pharmacists = container.getPharmacists() != null ? container.getPharmacists() : Collections.emptyList();
             profile = pharmacists.stream()
                     .filter(ph -> isEmail ? ph.getEmail().equals(identifier) : ph.getPhoneNumber().equals(identifier))
                     .findFirst()
@@ -195,15 +199,24 @@ public class AuthService {
 
         if (profile == null) throw new BadCredentialsException("Invalid credentials");
         String encodedPassword = null;
-        if (profile instanceof PatientProfile p) encodedPassword = p.getPassword();
-        if (profile instanceof DoctorProfile d) encodedPassword = d.getPassword();
-        if (profile instanceof PharmacistProfile ph) encodedPassword = ph.getPassword();
+        if (profile instanceof PatientProfile) {
+            PatientProfile p = (PatientProfile) profile;
+            encodedPassword = p.getPassword();
+        }
+        if (profile instanceof DoctorProfile) {
+            DoctorProfile d = (DoctorProfile) profile;
+            encodedPassword = d.getPassword();
+        }
+        if (profile instanceof PharmacistProfile) {
+            PharmacistProfile ph = (PharmacistProfile) profile;
+            encodedPassword = ph.getPassword();
+        }
 
         if (!passwordEncoder.matches(req.getPassword(), encodedPassword))
             throw new BadCredentialsException("Invalid credentials");
 
 
-        String token = jwtUtil.generateToken(profile, userType);
+        String token = jwtUtil.generateToken(((Profile) profile).getEmail(), userType.toString());
 
         return new AuthResponse(
                 "Login successful",
@@ -214,5 +227,18 @@ public class AuthService {
                 container.getUpdatedAt(),
                 token
         );
+    }
+
+    private String generateUniqueReference() {
+        String reference;
+        do {
+            reference = "PAT-" + UUID.randomUUID()
+                    .toString()
+                    .replace("-", "")
+                    .substring(0, 8)
+                    .toUpperCase();
+        }
+        while (patientRepository.existsByPatientReference(reference));
+        return reference;
     }
 }

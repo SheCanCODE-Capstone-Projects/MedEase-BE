@@ -13,7 +13,7 @@ import org.springframework.web.filter.OncePerRequestFilter;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import java.io.IOException;
-import java.util.Map;
+
 
 @Component
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
@@ -68,10 +68,11 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
             response.setContentType("application/json");
 
-            new ObjectMapper().writeValue(
-                    response.getOutputStream(),
-                    Map.of("error", "Unauthorized", "message", e.getMessage())
-            );
+            ObjectMapper mapper = new ObjectMapper();
+            java.util.HashMap<String, String> errorMap = new java.util.HashMap<>();
+            errorMap.put("error", "Unauthorized");
+            errorMap.put("message", e.getMessage());
+            mapper.writeValue(response.getOutputStream(), errorMap);
         }
     }
 }
