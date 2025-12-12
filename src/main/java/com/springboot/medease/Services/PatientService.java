@@ -1,18 +1,27 @@
 package com.springboot.medease.Services;
 
 import com.springboot.medease.DTOs.MedicalInfoUpdateRequest;
+import com.springboot.medease.DTOs.PatientResponseDTO;
 import com.springboot.medease.DTOs.PatientUpdateRequest;
 import com.springboot.medease.Models.MedicalInfo;
 import com.springboot.medease.Models.Patient;
+import com.springboot.medease.Models.User;
+import com.springboot.medease.Models.PatientProfile;
+import java.util.ArrayList;
 import com.springboot.medease.Repository.PatientRepository;
+import com.springboot.medease.Repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import java.util.UUID;
+
+
 
 @Service
 @RequiredArgsConstructor
 public class PatientService {
 
     private final PatientRepository patientRepo;
+    private final UserRepository userRepository;
 
 
     // Update patient personal info (Patient only)
@@ -62,8 +71,80 @@ public class PatientService {
     }
 
     // Add new patient
-    public Patient addPatient(Patient patient) {
-        return patientRepo.save(patient);
+    public PatientResponseDTO addPatient(PatientUpdateRequest dto) {
+        Patient patient = new Patient();
+        patient.setPatientReference(generatePatientReference());
+        patient.setFirstName(dto.getFirstName());
+        patient.setLastName(dto.getLastName());
+        patient.setEmail(dto.getEmail());
+        patient.setPhoneNumber(dto.getPhoneNumber());
+        patient.setDateOfBirth(dto.getDateOfBirth());
+        patient.setGender(dto.getGender());
+        patient.setInsuranceProvider(dto.getInsuranceProvider());
+        patient.setInsuranceNumber(dto.getInsuranceNumber());
+
+        // Create or update container
+        String containerId = "CONTAINER_USER";
+        User container = userRepository.findById(containerId).orElse(new User());
+        container.setId(containerId);
+        userRepository.save(container);
+
+        return mapToDTO(patientRepo.save(patient));
+    }
+
+    // Add patient by doctor with container association
+    public PatientResponseDTO addPatientByDoctor(PatientUpdateRequest dto, String doctorId) {
+        Patient patient = new Patient();
+        patient.setPatientReference(generatePatientReference());
+        patient.setFirstName(dto.getFirstName());
+        patient.setLastName(dto.getLastName());
+        patient.setEmail(dto.getEmail());
+        patient.setPhoneNumber(dto.getPhoneNumber());
+        patient.setDateOfBirth(dto.getDateOfBirth());
+        patient.setGender(dto.getGender());
+        patient.setInsuranceProvider(dto.getInsuranceProvider());
+        patient.setInsuranceNumber(dto.getInsuranceNumber());
+
+        Patient savedPatient = patientRepo.save(patient);
+
+        // Create PatientProfile and add to User container
+        PatientProfile patientProfile = new PatientProfile();
+        patientProfile.setPatientReference(savedPatient.getPatientReference());
+        patientProfile.setFirstName(dto.getFirstName());
+        patientProfile.setLastName(dto.getLastName());
+        patientProfile.setEmail(dto.getEmail());
+        patientProfile.setPhoneNumber(dto.getPhoneNumber());
+        patientProfile.setDateOfBirth(dto.getDateOfBirth());
+        patientProfile.setGender(dto.getGender());
+        patientProfile.setInsuranceProvider(dto.getInsuranceProvider());
+        patientProfile.setInsuranceNumber(dto.getInsuranceNumber());
+
+        String containerId = "MAIN_USER_CONTAINER";
+        User container = userRepository.findById(containerId).orElse(new User());
+        container.setId(containerId);
+        if (container.getPatients() == null) {
+            container.setPatients(new ArrayList<>());
+        }
+        container.getPatients().add(patientProfile);
+        userRepository.save(container);
+
+        return mapToDTO(savedPatient);
+    }
+
+    private PatientResponseDTO mapToDTO(Patient patient) {
+        PatientResponseDTO dto = new PatientResponseDTO();
+        dto.setId(patient.getId());
+        dto.setPatientReference(patient.getPatientReference());
+        dto.setFirstName(patient.getFirstName());
+        dto.setLastName(patient.getLastName());
+        dto.setEmail(patient.getEmail());
+        dto.setPhoneNumber(patient.getPhoneNumber());
+        dto.setDateOfBirth(patient.getDateOfBirth());
+        dto.setGender(patient.getGender());
+        dto.setInsuranceProvider(patient.getInsuranceProvider());
+        dto.setInsuranceNumber(patient.getInsuranceNumber());
+        dto.setMedicalInfo(patient.getMedicalInfo());
+        return dto;
     }
 
     // Fetch patient by ID
@@ -72,5 +153,13 @@ public class PatientService {
                 .orElseThrow(() -> new RuntimeException("Patient not found"));
     }
 
+    private String generatePatientReference() {
+        return "PAT-" + System.currentTimeMillis() + "-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase();
+    }
+
+    public Patient getByReference(String reference) {
+        return patientRepo.findByPatientReference(reference)
+                .orElseThrow(() -> new RuntimeException("Patient not found with reference: " + reference));
+    }
 
 }

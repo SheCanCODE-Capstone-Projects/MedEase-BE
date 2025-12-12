@@ -25,11 +25,9 @@ public class Profile {
 
     @NotBlank(message = "Email is required")
     @Email(message = "Email must be valid")
-    @Indexed(unique = true, sparse = true)
     protected String email;
 
     @NotBlank(message = "phoneNumber is required")
-    @Indexed(unique = true)
     protected String phoneNumber;
 
     @JsonProperty(access = JsonProperty.Access.WRITE_ONLY)

@@ -4,6 +4,7 @@ import com.springboot.medease.DTOs.MedicalInfoUpdateRequest;
 import com.springboot.medease.DTOs.PatientResponseDTO;
 import com.springboot.medease.DTOs.PatientUpdateRequest;
 import com.springboot.medease.Models.Patient;
+
 import com.springboot.medease.Services.PatientService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
@@ -59,11 +60,10 @@ public class PatientController {
 
 
     // Add new patient (Admin/Doctor)
-    @PostMapping
+    @PostMapping()
     @PreAuthorize("hasRole('ADMIN') or hasRole('DOCTOR')")
-    public PatientResponseDTO addPatient(@RequestBody @Valid Patient patient) {
-        Patient savedPatient = patientService.addPatient(patient);
-        return mapToResponseDTO(savedPatient);
+    public PatientResponseDTO addPatient(@RequestBody @Valid PatientUpdateRequest dto, Authentication authentication) {
+        return patientService.addPatientByDoctor(dto, authentication.getName());
     }
 
     // Fetch patient by ID
@@ -82,6 +82,7 @@ public class PatientController {
     private PatientResponseDTO mapToResponseDTO(Patient patient) {
         PatientResponseDTO dto = new PatientResponseDTO();
         dto.setId(patient.getId());
+        dto.setPatientReference(patient.getPatientReference());
         dto.setFirstName(patient.getFirstName());
         dto.setLastName(patient.getLastName());
         dto.setEmail(patient.getEmail());
@@ -90,5 +91,12 @@ public class PatientController {
         dto.setGender(patient.getGender());
         dto.setMedicalInfo(patient.getMedicalInfo());
         return dto;
+    }
+
+    @GetMapping("/by-reference/{ref}")
+    @PreAuthorize("hasRole('DOCTOR') or hasRole('PHARMACIST')")
+    public PatientResponseDTO getPatientByReference(@PathVariable String ref) {
+        Patient patient = patientService.getByReference(ref);
+        return mapToResponseDTO(patient);
     }
 }

@@ -7,72 +7,53 @@ import io.jsonwebtoken.security.Keys;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
-import java.security.Key;
+import javax.crypto.SecretKey;
 import java.util.Date;
-import com.springboot.medease.Models.*;
 
 @Component
 public class JwtUtil {
+    
+    private final SecretKey key;
+    
+    public JwtUtil(@Value("${app.jwt.secret:}") String jwtSecret) {
+        if (jwtSecret == null || jwtSecret.trim().isEmpty()) {
+            throw new IllegalArgumentException("JWT secret must be provided via jwt.secret property or JWT_SECRET environment variable");
+        }
+        if (jwtSecret.length() < 32) {
+            throw new IllegalArgumentException("JWT secret must be at least 32 characters long");
+        }
+        this.key = Keys.hmacShaKeyFor(jwtSecret.getBytes());
+    }
+    private final long expiration = 86400000; // 24 hours
 
-    @Value("${app.jwt.secret}")
-    private String SECRET_KEY;
-
-    @Value("${app.jwt.expiration-ms}")
-    private long EXPIRATION_TIME;
-
-    private Key getSigningKey() {
-        return Keys.hmacShaKeyFor(SECRET_KEY.getBytes());
+    public String generateToken(String username, String role) {
+        return Jwts.builder()
+                .setSubject(username)
+                .claim("role", role)
+                .setIssuedAt(new Date())
+                .setExpiration(new Date(System.currentTimeMillis() + expiration))
+                .signWith(key)
+                .compact();
     }
 
-    public String generateToken(Object profile, UserType userType) {
-        if (profile == null) {
-                    throw new IllegalArgumentException("Profile cannot be null");
-        }
-        String email , phone ;
-
-        if (profile instanceof PatientProfile p) {
-            email = p.getEmail();
-            phone = p.getPhoneNumber();
-        } else if (profile instanceof DoctorProfile d) {
-            email = d.getEmail();
-            phone = d.getPhoneNumber();
-        } else if (profile instanceof PharmacistProfile ph) {
-            email = ph.getEmail();
-            phone = ph.getPhoneNumber();
-        } else {
-                  throw new IllegalArgumentException("Unsupported profile type: " + profile.getClass().getName());
-        }
-
-        String subject = email != null ? email : phone;
-
-        if (subject == null) {
-                  throw new IllegalArgumentException("Profile must have either email or phone number");
-        }
-        return Jwts.builder()
-                .setSubject(subject)
-                .claim("role", userType)
-                .setIssuedAt(new Date())
-                .setExpiration(new Date(System.currentTimeMillis() + EXPIRATION_TIME))
-                .signWith(getSigningKey(), SignatureAlgorithm.HS256)
-                .compact();
+    public String generateToken(String username) {
+        return generateToken(username, "ROLE_USER");
     }
 
     public Claims extractAllClaims(String token) {
         return Jwts.parserBuilder()
-                .setSigningKey(getSigningKey())
+                .setSigningKey(key)
                 .build()
                 .parseClaimsJws(token)
                 .getBody();
     }
 
-    public String extractRole(String token) {
-        return extractAllClaims(token).get("role", String.class);
-    }
-
     public boolean validateToken(String token) {
-        return !extractAllClaims(token).getExpiration().before(new Date());
+        try {
+            extractAllClaims(token);
+            return true;
+        } catch (Exception e) {
+            return false;
+        }
     }
 }
-
-
-

@@ -9,6 +9,7 @@ import java.util.Date;
 @Data
 public class PatientResponseDTO {
     private String id;
+    private String patientReference;
     private String firstName;
     private String lastName;
 
@@ -16,6 +17,8 @@ public class PatientResponseDTO {
     private String phoneNumber;
     private Date dateOfBirth;
     private Gender gender;
+    private String insuranceProvider;
+    private String insuranceNumber;
     private MedicalInfo medicalInfo;
 
 }
