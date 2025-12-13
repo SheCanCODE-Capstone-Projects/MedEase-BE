@@ -1,24 +1,29 @@
 package com.springboot.medease.Security;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import io.jsonwebtoken.Claims;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
-import io.jsonwebtoken.Claims;
 import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
-import com.fasterxml.jackson.databind.ObjectMapper;
 
 import java.io.IOException;
-
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
 
 @Component
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private final JwtUtil jwtUtil;
+
     public JwtAuthenticationFilter(JwtUtil jwtUtil) {
         this.jwtUtil = jwtUtil;
     }
@@ -31,6 +36,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
         String path = request.getRequestURI();
 
+        // Skip authentication for public endpoints
         if (path.startsWith("/api/auth/register") || path.startsWith("/api/auth/login")) {
             filterChain.doFilter(request, response);
             return;
@@ -41,22 +47,31 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
             if (authHeader != null && authHeader.startsWith("Bearer ")) {
                 String token = authHeader.substring(7);
-
                 Claims claims = jwtUtil.extractAllClaims(token);
+
                 String username = claims.getSubject();
                 String role = claims.get("role", String.class);
+                String userId = claims.get("userId", String.class); // immutable unique ID
 
-                if (username != null && SecurityContextHolder.getContext().getAuthentication() == null && jwtUtil.validateToken(token)) {
-                    
-                    java.util.Collection<org.springframework.security.core.GrantedAuthority> authorities = new java.util.ArrayList<>();
+                if (username != null &&
+                        SecurityContextHolder.getContext().getAuthentication() == null &&
+                        jwtUtil.validateToken(token)) {
+
+                    // Convert role to GrantedAuthority
+                    Collection<GrantedAuthority> authorities = new ArrayList<>();
                     if (role != null) {
-                        authorities.add(new org.springframework.security.core.authority.SimpleGrantedAuthority(role));
+                        authorities.add(new SimpleGrantedAuthority(role));
                     }
-                    
+
+                    // Create CustomUserPrincipal
+                    CustomUserPrincipal principal =
+                            new CustomUserPrincipal(userId, username, authorities);
+
+                    // Create Authentication token
                     UsernamePasswordAuthenticationToken authToken =
-                            new UsernamePasswordAuthenticationToken(username, null, authorities);
-                    
+                            new UsernamePasswordAuthenticationToken(principal, null, authorities);
                     authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+
                     SecurityContextHolder.getContext().setAuthentication(authToken);
                 }
             }
@@ -68,11 +83,10 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             response.setContentType("application/json");
 
             ObjectMapper mapper = new ObjectMapper();
-            java.util.HashMap<String, String> errorMap = new java.util.HashMap<>();
+            var errorMap = new java.util.HashMap<String, String>();
             errorMap.put("error", "Unauthorized");
             errorMap.put("message", e.getMessage());
             mapper.writeValue(response.getOutputStream(), errorMap);
         }
     }
 }
-

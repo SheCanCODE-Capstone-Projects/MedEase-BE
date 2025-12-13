@@ -2,12 +2,16 @@ package com.springboot.medease.Controllers;
 
 import com.springboot.medease.DTOs.JoinQueueRequest;
 import com.springboot.medease.DTOs.QueueResponseDTO;
+import com.springboot.medease.Security.CustomUserPrincipal;
 import com.springboot.medease.Services.QueueService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
+
+import java.net.URI;
 
 @RestController
 @RequestMapping("/api/queue")
@@ -18,11 +22,19 @@ public class QueueController {
 
     @PostMapping("/join")
     @PreAuthorize("hasRole('PATIENT')")
-    public QueueResponseDTO joinQueue(
+    public ResponseEntity<QueueResponseDTO> joinQueue(
             @RequestBody @Valid JoinQueueRequest request,
             Authentication authentication) {
-        return queueService.joinQueue(authentication.getName(), request);
+
+        CustomUserPrincipal user = (CustomUserPrincipal) authentication.getPrincipal();
+        String patientId = user.getUserId(); // immutable ID from JWT
+
+        QueueResponseDTO dto = queueService.joinQueue(patientId, request);
+
+        URI location = URI.create("/api/queue/" + dto.getQueueId()); // optional Location header
+        return ResponseEntity.created(location).body(dto);
     }
+
 
     @GetMapping("/status")
     @PreAuthorize("hasRole('PATIENT')")

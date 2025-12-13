@@ -9,7 +9,9 @@ import com.springboot.medease.Repository.ServiceRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
+import java.time.Instant;
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Service
 @RequiredArgsConstructor
@@ -20,28 +22,41 @@ public class QueueService {
     private final ServiceRepository serviceRepository;
 
     public QueueResponseDTO joinQueue(String patientId, JoinQueueRequest request) {
-        // Check if patient already in queue
+        // 1️⃣ Check if patient is already in queue
         if (queueRepository.findByPatientIdAndStatus(patientId, QueueStatus.WAITING).isPresent()) {
             throw new com.springboot.medease.GlobalException.QueueException("Patient already in queue");
         }
 
-        // Create queue entry
+        // 2️⃣ Create new queue entry
         Queue queue = new Queue();
         queue.setPatientId(patientId);
         queue.setClinicId(request.getClinicId());
         queue.setServiceId(request.getServiceId());
         queue.setStatus(QueueStatus.WAITING);
-        queue.setJoinTime(LocalDateTime.now());
-        
+        queue.setJoinTime(Instant.now());
+
+        // Save to get generated ID
         queue = queueRepository.save(queue);
-        
-        // Calculate position
-        int position = calculateQueuePosition(queue);
+
+        // 3️⃣ Determine position deterministically (joinTime + id as tiebreaker)
+        List<Queue> queues = queueRepository
+                .findByClinicIdAndServiceIdAndStatusOrderByJoinTimeAscIdAsc(
+                        queue.getClinicId(), queue.getServiceId(), QueueStatus.WAITING);
+
+        int position = 1;
+        for (Queue q : queues) {
+            if (q.getId().equals(queue.getId())) break;
+            position++;
+        }
         queue.setQueuePosition(position);
+
+        // 4️⃣ Save updated position
         queueRepository.save(queue);
-        
+
+        // 5️⃣ Map to response DTO
         return mapToResponseDTO(queue);
     }
+
 
     public QueueResponseDTO getPatientQueue(String patientId) {
         Queue queue = queueRepository.findByPatientIdAndStatus(patientId, QueueStatus.WAITING)
@@ -50,10 +65,18 @@ public class QueueService {
     }
 
     private int calculateQueuePosition(Queue queue) {
-        long count = queueRepository.countByClinicIdAndServiceIdAndStatusAndJoinTimeBefore(
-                queue.getClinicId(), queue.getServiceId(), QueueStatus.WAITING, queue.getJoinTime());
-        return (int) count + 1;
+        List<Queue> queues = queueRepository
+                .findByClinicIdAndServiceIdAndStatusOrderByJoinTimeAscIdAsc(
+                        queue.getClinicId(), queue.getServiceId(), QueueStatus.WAITING);
+
+        int position = 1;
+        for (Queue q : queues) {
+            if (q.getId().equals(queue.getId())) break;
+            position++;
+        }
+        return position;
     }
+
 
     public java.util.List<Clinic> getAllClinics() {
         return clinicRepository.findAll();
