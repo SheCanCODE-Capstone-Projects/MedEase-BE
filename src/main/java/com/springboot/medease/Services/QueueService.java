@@ -33,9 +33,9 @@ public class QueueService {
         queue.setServiceId(request.getServiceId());
         queue.setStatus(QueueStatus.WAITING);
         queue.setJoinTime(LocalDateTime.from(Instant.now()));
-        
+
         queue = queueRepository.save(queue);
-        queue.setJoinTime(LocalDateTime.now());
+        queue.setQueuePosition(calculateQueuePosition(queue));
         queueRepository.save(queue);
 
         return mapToResponseDTO(queue);
