@@ -5,7 +5,10 @@ import com.springboot.medease.Services.AuthService;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.*;
+import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/auth")
@@ -28,6 +31,16 @@ public class AuthController {
     @PostMapping("/login")
     public ResponseEntity<AuthResponse> login(@Valid @RequestBody LoginRequest request) {
         AuthResponse response = authService.login(request);
+        return ResponseEntity.ok(response);
+    }
+
+    @PostMapping("/google/login")
+    public ResponseEntity<AuthResponse> googleLogin(@RequestBody Map<String, String> request) {
+        String idToken = request.get("idToken");
+        if (idToken == null || idToken.isEmpty()) {
+            throw new BadCredentialsException("Google token is required");
+        }
+        AuthResponse response = authService.googleLogin(idToken);
         return ResponseEntity.ok(response);
     }
 }
