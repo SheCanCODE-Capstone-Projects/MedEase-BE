@@ -11,7 +11,9 @@ import org.springframework.context.annotation.Configuration;
 @OpenAPIDefinition(
 
         info = @Info(
-                title = "MedEase Healthcare"
+                title = "MedEase Healthcare",
+                version = "1.0",
+                description = "Healthcare management API with OAuth2 authentication"
         ),
         servers = {
                 @Server(

@@ -257,6 +257,7 @@ public class AuthService {
 
     // Helper method to find profile and role by email
     private ProfileAndRole findProfileByEmail(User container, String email) {
+
         // Check patients
         List<PatientProfile> patients = container.getPatients() != null ? container.getPatients() : new ArrayList<>();
         Profile profile = patients.stream()
@@ -315,6 +316,11 @@ public class AuthService {
 
         if (profileAndRole == null) {
             throw new BadCredentialsException("User not registered with this email");
+        }
+
+        // BLOCK DOCTORS FROM GOOGLE LOGIN
+        if ("ROLE_DOCTOR".equals(profileAndRole.role())) {
+            throw new BadCredentialsException("Doctors are not allowed to login using Google");
         }
 
         // Generate JWT
