@@ -8,18 +8,18 @@ import com.springboot.medease.GlobalException.QueueException;
 import com.springboot.medease.Models.Clinic;
 import com.springboot.medease.Models.Queue;
 import com.springboot.medease.Models.QueueStatus;
+import com.springboot.medease.Models.Service;
 import com.springboot.medease.Repository.ClinicRepository;
 import com.springboot.medease.Repository.QueueRepository;
 import com.springboot.medease.Repository.ServiceRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.dao.DuplicateKeyException;
-import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
 import java.util.EnumSet;
 import java.util.List;
 
-@Service
+@org.springframework.stereotype.Service
 @RequiredArgsConstructor
 public class QueueService {
 
@@ -31,11 +31,11 @@ public class QueueService {
     private final ServiceRepository serviceRepository;
 
     /**
-     * Patient selects clinic & service and joins the queue.
+     * Patient joins a queue for a specific clinic + service.
      *
-     * Concurrency:
-     * - App-level pre-check gives a friendly message.
-     * - DB partial unique index (ux_patient_one_active_queue) is the final guard against race conditions.
+     * Concurrency notes:
+     * - We do a friendly pre-check to return a clean message in the normal case.
+     * - The DB unique partial index (ux_patient_one_active_queue) is the final guard against race conditions.
      */
     public QueueResponseDTO joinQueue(String patientId, JoinQueueRequest request) {
         String clinicId = request.getClinicId();
@@ -45,16 +45,16 @@ public class QueueService {
         Clinic clinic = clinicRepository.findById(clinicId)
                 .orElseThrow(() -> new QueueException("Clinic not found: " + clinicId));
 
-        // Validate service exists and belongs to clinic (recommended)
-        com.springboot.medease.Models.Service service = serviceRepository.findById(serviceId)
+        // Validate service exists and belongs to that clinic
+        Service service = serviceRepository.findById(serviceId)
                 .orElseThrow(() -> new QueueException("Service not found: " + serviceId));
-        if (!clinicId.equals(service.getClinicId())) {
+        if (service.getClinicId() == null || !clinicId.equals(service.getClinicId())) {
             throw new QueueException("Service does not belong to the selected clinic");
         }
 
-        // Friendly pre-check
+        // Enforce: patient can have ONLY ONE active queue entry globally (WAITING or IN_PROGRESS)
         if (queueRepository.findFirstByPatientIdAndStatusIn(patientId, ACTIVE_STATUSES).isPresent()) {
-            throw new QueueException("Patient already has an active queue entry");
+            throw new QueueConflictException("Patient already has an active queue entry");
         }
 
         Queue queue = new Queue();
@@ -65,7 +65,7 @@ public class QueueService {
         queue.setJoinTime(LocalDateTime.now());
         queue.setAssignedDoctorId(null);
 
-        // queuePosition is derived; keep stored value but don't treat it as the source of truth
+        // Derived in API response; keep stored value for compatibility/auditing if needed
         queue.setQueuePosition(0);
 
         try {
@@ -78,15 +78,20 @@ public class QueueService {
         return mapToResponseDTO(queue, clinic, service);
     }
 
+    /**
+     * Returns the patient's active queue entry (WAITING or IN_PROGRESS).
+     *
+     * Note: We intentionally throw QueueException for missing clinic/service references to keep
+     * API behavior consistent with joinQueue() (client receives a 4xx rather than a 500).
+     */
     public QueueResponseDTO getPatientQueue(String patientId) {
         Queue queue = queueRepository.findFirstByPatientIdAndStatusIn(patientId, ACTIVE_STATUSES)
                 .orElseThrow(() -> new QueueException("No active queue found"));
 
-        // Load related entities for response fields
         Clinic clinic = clinicRepository.findById(queue.getClinicId())
-                .orElseThrow(() -> new IllegalStateException("Clinic not found: " + queue.getClinicId()));
-        com.springboot.medease.Models.Service service = serviceRepository.findById(queue.getServiceId())
-                .orElseThrow(() -> new IllegalStateException("Service not found: " + queue.getServiceId()));
+                .orElseThrow(() -> new QueueException("Clinic not found: " + queue.getClinicId()));
+        Service service = serviceRepository.findById(queue.getServiceId())
+                .orElseThrow(() -> new QueueException("Service not found: " + queue.getServiceId()));
 
         return mapToResponseDTO(queue, clinic, service);
     }
@@ -95,7 +100,7 @@ public class QueueService {
         return clinicRepository.findAll();
     }
 
-    public List<com.springboot.medease.Models.Service> getServicesByClinic(String clinicId) {
+    public List<Service> getServicesByClinic(String clinicId) {
         return serviceRepository.findByClinicId(clinicId);
     }
 
@@ -127,7 +132,7 @@ public class QueueService {
                     ));
         }
 
-        com.springboot.medease.Models.Service service = serviceRepository
+        Service service = serviceRepository
                 .findByClinicIdAndNameIgnoreCase(clinic.getId(), serviceName)
                 .orElseThrow(() -> new QueueException(
                         "Service not found: " + serviceName + " for clinic " + clinic.getName()
@@ -140,11 +145,7 @@ public class QueueService {
         return joinQueue(patientId, idRequest);
     }
 
-    private QueueResponseDTO mapToResponseDTO(
-            Queue queue,
-            Clinic clinic,
-            com.springboot.medease.Models.Service service
-    ) {
+    private QueueResponseDTO mapToResponseDTO(Queue queue, Clinic clinic, Service service) {
         QueueResponseDTO dto = new QueueResponseDTO();
         dto.setQueueId(queue.getId());
         dto.setStatus(queue.getStatus());
