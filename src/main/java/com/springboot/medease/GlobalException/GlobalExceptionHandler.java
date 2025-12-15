@@ -36,6 +36,18 @@ public class GlobalExceptionHandler {
         return new ResponseEntity<>(errors, HttpStatus.BAD_REQUEST);
     }
 
+    @ExceptionHandler(QueueConflictException.class)
+    public ResponseEntity<String> handleQueueConflictException(QueueConflictException ex) {
+        logger.error("Queue conflict: {}", ex.getMessage(), ex);
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(ex.getMessage());
+    }
+
+    @ExceptionHandler(QueueException.class)
+    public ResponseEntity<String> handleQueueException(QueueException ex) {
+        logger.error("Queue error: {}", ex.getMessage(), ex);
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(ex.getMessage());
+    }
+
     @ExceptionHandler({io.jsonwebtoken.JwtException.class, BadCredentialsException.class})
     public ResponseEntity<Map<String, String>> handleJwtException(Exception ex) {
         logger.error("JWT / authentication error: {}", ex.getMessage(), ex);
@@ -45,11 +57,6 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(error);
     }
 
-    @ExceptionHandler(QueueException.class)
-    public ResponseEntity<String> handleQueueException(QueueException ex) {
-        logger.error("Queue error: {}", ex.getMessage(), ex);
-        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(ex.getMessage());
-    }
 
     @ExceptionHandler(Exception.class)
     public ResponseEntity<Map<String, String>> handleGlobalException(Exception ex) {
