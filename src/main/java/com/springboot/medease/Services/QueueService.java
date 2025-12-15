@@ -3,6 +3,7 @@ package com.springboot.medease.Services;
 import com.springboot.medease.DTOs.JoinQueueByNameRequest;
 import com.springboot.medease.DTOs.JoinQueueRequest;
 import com.springboot.medease.DTOs.QueueResponseDTO;
+import com.springboot.medease.GlobalException.QueueConflictException;
 import com.springboot.medease.GlobalException.QueueException;
 import com.springboot.medease.Models.Clinic;
 import com.springboot.medease.Models.Queue;
@@ -71,7 +72,7 @@ public class QueueService {
             queue = queueRepository.save(queue);
         } catch (DuplicateKeyException ex) {
             // Race condition: another request inserted an active queue for same patientId
-            throw new QueueException("Patient already has an active queue entry");
+            throw new QueueConflictException("Patient already has an active queue entry");
         }
 
         return mapToResponseDTO(queue, clinic, service);
