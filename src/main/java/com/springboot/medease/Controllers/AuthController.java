@@ -35,12 +35,8 @@ public class AuthController {
     }
 
     @PostMapping("/google/login")
-    public ResponseEntity<AuthResponse> googleLogin(@RequestBody Map<String, String> request) {
-        String idToken = request.get("idToken");
-        if (idToken == null || idToken.isEmpty()) {
-            throw new BadCredentialsException("Google token is required");
-        }
-        AuthResponse response = authService.googleLogin(idToken);
+    public ResponseEntity<AuthResponse> googleLogin(@Valid @RequestBody GoogleLoginRequest request) {
+        AuthResponse response = authService.googleLogin(request.getIdToken());
         return ResponseEntity.ok(response);
     }
 }

@@ -13,6 +13,9 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+
+import java.io.IOException;
+import java.security.GeneralSecurityException;
 import java.time.LocalDateTime;
 import java.util.*;
 import java.util.Collections;
@@ -20,15 +23,12 @@ import java.util.Collections;
 @Service
 public class AuthService {
 
-    @Value("${google.client.id}")
-    private String googleClientId;
-
-
+    private final GoogleIdTokenVerifier googleIdTokenVerifier;
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtUtil jwtUtil;
     private final PatientService patientService;
-    private final PatientRepository patientRepository;;
+    private final PatientRepository patientRepository;
 
     // ID of the container document (singleton)
     private static final String CONTAINER_ID = "MAIN_USER_CONTAINER";
@@ -36,12 +36,17 @@ public class AuthService {
     public AuthService(UserRepository userRepository,
                        PasswordEncoder passwordEncoder,
                        JwtUtil jwtUtil,
-                       PatientService patientService , PatientRepository patientRepository) {
+                       PatientService patientService , PatientRepository patientRepository, @Value("${google.client.id}") String googleClientId) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
         this.jwtUtil = jwtUtil;
         this.patientService = patientService;
         this.patientRepository = patientRepository;
+        this.googleIdTokenVerifier = new GoogleIdTokenVerifier.Builder(
+                new NetHttpTransport(),
+                new GsonFactory()
+        ).setAudience(List.of(googleClientId)).build();
+
     }
 
     public AuthResponse registerPatient(PatientRegisterRequest req) {
@@ -174,12 +179,16 @@ public class AuthService {
 
         Object profile ;
         UserType userType = null;
+
+
         List<PatientProfile> patients = container.getPatients() != null ? container.getPatients() : Collections.emptyList();
         profile = patients.stream()
                 .filter(p -> isEmail ? p.getEmail().equals(identifier) : p.getPhoneNumber().equals(identifier))
                 .findFirst()
                 .orElse(null);
         if (profile != null) userType = UserType.ROLE_PATIENT;
+
+
         if (profile == null) {
             List<DoctorProfile> doctors = container.getDoctors() != null ? container.getDoctors() : Collections.emptyList();
             profile = doctors.stream()
@@ -243,74 +252,79 @@ public class AuthService {
         return reference;
     }
 
-    public AuthResponse googleLogin(String idTokenString) {
+    // Record to hold profile and role
+    private record ProfileAndRole(Profile profile, String role) {}
 
-        GoogleIdTokenVerifier verifier =
-                new GoogleIdTokenVerifier.Builder(
-                        new NetHttpTransport(),
-                        new GsonFactory()
-                )
-                        .setAudience(List.of(googleClientId))
-                        .build();
+    // Helper method to find profile and role by email
+    private ProfileAndRole findProfileByEmail(User container, String email) {
+        // Check patients
+        List<PatientProfile> patients = container.getPatients() != null ? container.getPatients() : new ArrayList<>();
+        Profile profile = patients.stream()
+                .filter(p -> p.getEmail().equals(email))
+                .findFirst()
+                .orElse(null);
+        if (profile != null) return new ProfileAndRole(profile, "ROLE_PATIENT");
+
+        // Check doctors
+        List<DoctorProfile> doctors = container.getDoctors() != null ? container.getDoctors() : new ArrayList<>();
+        profile = doctors.stream()
+                .filter(d -> d.getEmail().equals(email))
+                .findFirst()
+                .orElse(null);
+        if (profile != null) return new ProfileAndRole(profile, "ROLE_DOCTOR");
+
+        // Check pharmacists
+        List<PharmacistProfile> pharmacists = container.getPharmacists() != null ? container.getPharmacists() : new ArrayList<>();
+        profile = pharmacists.stream()
+                .filter(ph -> ph.getEmail().equals(email))
+                .findFirst()
+                .orElse(null);
+        if (profile != null) return new ProfileAndRole(profile, "ROLE_PHARMACIST");
+
+        return null; // Not found
+    }
+
+
+    public AuthResponse googleLogin(String idTokenString) {
 
         GoogleIdToken idToken;
         try {
-            idToken = verifier.verify(idTokenString);
-        } catch (Exception e) {
-            throw new RuntimeException("Invalid Google token");
+            idToken = googleIdTokenVerifier.verify(idTokenString);
+        } catch (GeneralSecurityException | IOException e) {
+            throw new BadCredentialsException("Invalid Google token" + e.getMessage(), e);
         }
 
         if (idToken == null) {
-            throw new RuntimeException("Invalid Google token");
+            throw new BadCredentialsException("Invalid Google token");
         }
 
         GoogleIdToken.Payload payload = idToken.getPayload();
         String email = payload.getEmail();
 
+        Boolean emailVerified = payload.getEmailVerified();
+        if (!Boolean.TRUE.equals(emailVerified)) {
+            throw new BadCredentialsException("Email not verified by Google");
+        }
+
         // Load container
         User container = userRepository.findById(CONTAINER_ID)
-                .orElseThrow(() -> new RuntimeException("No users found"));
+                .orElseThrow(() -> new BadCredentialsException("No users found"));
 
-        Profile profile = null;
-        String role = null;
 
-        // Check patients
-        List<PatientProfile> patients = container.getPatients() != null ? container.getPatients() : new ArrayList<>();
-        profile = patients.stream()
-                .filter(p -> p.getEmail().equals(email))
-                .findFirst().orElse(null);
-        if (profile != null) role = "ROLE_PATIENT";
+        var profileAndRole = findProfileByEmail(container, email);
 
-        // Check doctors
-        if (profile == null) {
-            List<DoctorProfile> doctors = container.getDoctors() != null ? container.getDoctors() : new ArrayList<>();
-            profile = doctors.stream()
-                    .filter(d -> d.getEmail().equals(email))
-                    .findFirst().orElse(null);
-            if (profile != null) role = "ROLE_DOCTOR";
-        }
-
-        // Check pharmacists
-        if (profile == null) {
-            List<PharmacistProfile> pharmacists = container.getPharmacists() != null ? container.getPharmacists() : new ArrayList<>();
-            profile = pharmacists.stream()
-                    .filter(ph -> ph.getEmail().equals(email))
-                    .findFirst().orElse(null);
-            if (profile != null) role = "ROLE_PHARMACIST";
-        }
-
-        if (profile == null) {
-            throw new RuntimeException("User not registered with this email");
+        if (profileAndRole == null) {
+            throw new BadCredentialsException("User not registered with this email");
         }
 
         // Generate JWT
-        String token = jwtUtil.generateToken(profile.getEmail(), role);
+        String token = jwtUtil.generateToken(profileAndRole.profile.getEmail(), profileAndRole.role());
 
         return new AuthResponse(
                 "Google login successful",
                 container.getId(),
-                profile.getEmail(),
-                UserType.valueOf(role),
+                profileAndRole.profile.getEmail(),
+                UserType.valueOf(profileAndRole.role()),
                 container.getCreatedAt(),
                 container.getUpdatedAt(),
                 token
