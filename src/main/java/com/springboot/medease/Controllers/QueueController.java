@@ -1,5 +1,6 @@
 package com.springboot.medease.Controllers;
 
+import com.springboot.medease.DTOs.JoinQueueByNameRequest;
 import com.springboot.medease.DTOs.JoinQueueRequest;
 import com.springboot.medease.DTOs.QueueResponseDTO;
 import com.springboot.medease.Services.QueueService;
@@ -17,6 +18,20 @@ public class QueueController {
     private final QueueService queueService;
 
 
+    @PostMapping("/join")
+    @PreAuthorize("hasRole('PATIENT')")
+    public QueueResponseDTO joinQueue(@Valid @RequestBody JoinQueueRequest request,
+                                      Authentication authentication) {
+        return queueService.joinQueue(authentication.getName(), request);
+    }
+
+
+    @PostMapping("/join-by-names")
+    @PreAuthorize("hasRole('PATIENT')")
+    public QueueResponseDTO joinQueueByNames(@Valid @RequestBody JoinQueueByNameRequest request,
+                                             Authentication authentication) {
+        return queueService.joinQueueByNames(authentication.getName(), request);
+    }
     @GetMapping("/status")
     @PreAuthorize("hasRole('PATIENT')")
     public QueueResponseDTO getQueueStatus(Authentication authentication) {
