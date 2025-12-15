@@ -16,13 +16,6 @@ public class QueueController {
 
     private final QueueService queueService;
 
-    @PostMapping("/join")
-    @PreAuthorize("hasRole('PATIENT')")
-    public QueueResponseDTO joinQueue(
-            @RequestBody @Valid JoinQueueRequest request,
-            Authentication authentication) {
-        return queueService.joinQueue(authentication.getName(), request);
-    }
 
     @GetMapping("/status")
     @PreAuthorize("hasRole('PATIENT')")

@@ -9,6 +9,7 @@ import com.springboot.medease.Repository.ServiceRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
+import java.time.Instant;
 import java.time.LocalDateTime;
 
 @Service
@@ -20,7 +21,7 @@ public class QueueService {
     private final ServiceRepository serviceRepository;
 
     public QueueResponseDTO joinQueue(String patientId, JoinQueueRequest request) {
-        // Check if patient already in queue
+
         if (queueRepository.findByPatientIdAndStatus(patientId, QueueStatus.WAITING).isPresent()) {
             throw new com.springboot.medease.GlobalException.QueueException("Patient already in queue");
         }
@@ -31,15 +32,12 @@ public class QueueService {
         queue.setClinicId(request.getClinicId());
         queue.setServiceId(request.getServiceId());
         queue.setStatus(QueueStatus.WAITING);
-        queue.setJoinTime(LocalDateTime.now());
+        queue.setJoinTime(LocalDateTime.from(Instant.now()));
         
         queue = queueRepository.save(queue);
-        
-        // Calculate position
-        int position = calculateQueuePosition(queue);
-        queue.setQueuePosition(position);
+        queue.setQueuePosition(calculateQueuePosition(queue));
         queueRepository.save(queue);
-        
+
         return mapToResponseDTO(queue);
     }
 
@@ -69,13 +67,16 @@ public class QueueService {
         dto.setQueuePosition(queue.getQueuePosition());
         dto.setStatus(queue.getStatus());
         dto.setJoinTime(queue.getJoinTime());
-        
+
         // Get clinic and service names
-        clinicRepository.findById(queue.getClinicId())
-                .ifPresent(clinic -> dto.setClinicName(clinic.getName()));
-        serviceRepository.findById(queue.getServiceId())
-                .ifPresent(service -> dto.setServiceName(service.getName()));
-        
+         Clinic clinic = clinicRepository.findById(queue.getClinicId())
+                            .orElseThrow(() -> new IllegalStateException("Clinic not found: " + queue.getClinicId()));
+         dto.setClinicName(clinic.getName());
+
+                        com.springboot.medease.Models.Service service = serviceRepository.findById(queue.getServiceId())
+                                .orElseThrow(() -> new IllegalStateException("Service not found: " + queue.getServiceId()));
+               dto.setServiceName(service.getName());
+
         return dto;
     }
 }
