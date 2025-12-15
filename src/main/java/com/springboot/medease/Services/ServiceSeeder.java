@@ -5,11 +5,13 @@ import com.springboot.medease.Repository.ClinicRepository;
 import com.springboot.medease.Repository.ServiceRepository;
 import lombok.NonNull;
 import org.springframework.boot.CommandLineRunner;
+import org.springframework.context.annotation.DependsOn;
 import org.springframework.stereotype.Component;
 
 import java.util.logging.Logger;
 
 @Component
+@DependsOn("clinicSeeder")
 public class ServiceSeeder implements CommandLineRunner {
 
     private static final Logger logger = Logger.getLogger(ServiceSeeder.class.getName());

@@ -93,7 +93,7 @@ public class QueueService {
 
         Clinic clinic;
         if (clinics.size() == 1) {
-            clinic = clinics.getFirst();
+            clinic = clinics.get(0);
         } else {
             String location = request.getClinicLocation() == null ? "" : request.getClinicLocation().trim();
             if (location.isEmpty()) {

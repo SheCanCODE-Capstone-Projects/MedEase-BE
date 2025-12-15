@@ -11,7 +11,7 @@ import java.util.logging.Logger;
 @Component
 public class ClinicSeeder implements CommandLineRunner {
 
-    private static final Logger logger = Logger.getLogger(ClinicSeeder.class.getName());
+    private  static final Logger logger = Logger.getLogger(ClinicSeeder.class.getName());
 
     private final ClinicRepository clinicRepository;
 
