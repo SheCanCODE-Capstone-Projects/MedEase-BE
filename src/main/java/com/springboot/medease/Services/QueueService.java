@@ -1,22 +1,25 @@
-
 package com.springboot.medease.Services;
 
 import com.springboot.medease.DTOs.JoinQueueByNameRequest;
 import com.springboot.medease.DTOs.JoinQueueRequest;
 import com.springboot.medease.DTOs.QueueResponseDTO;
 import com.springboot.medease.Models.*;
-        import com.springboot.medease.Repository.ClinicRepository;
+import com.springboot.medease.Repository.ClinicRepository;
 import com.springboot.medease.Repository.QueueRepository;
 import com.springboot.medease.Repository.ServiceRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
+import java.util.EnumSet;
 import java.util.List;
 
 @Service
 @RequiredArgsConstructor
 public class QueueService {
+
+    private static final EnumSet<QueueStatus> ACTIVE_STATUSES =
+            EnumSet.of(QueueStatus.WAITING, QueueStatus.IN_PROGRESS);
 
     private final QueueRepository queueRepository;
     private final ClinicRepository clinicRepository;
@@ -24,34 +27,32 @@ public class QueueService {
 
     public QueueResponseDTO joinQueue(String patientId, JoinQueueRequest request) {
 
-        if (queueRepository.findByPatientIdAndStatus(patientId, QueueStatus.WAITING).isPresent()) {
-            throw new com.springboot.medease.GlobalException.QueueException("Patient already in queue");
+        // Enforce: patient can have ONLY ONE active queue entry globally (WAITING or IN_PROGRESS)
+        if (queueRepository.findFirstByPatientIdAndStatusIn(patientId, ACTIVE_STATUSES).isPresent()) {
+            throw new com.springboot.medease.GlobalException.QueueException("Patient already has an active queue entry");
         }
 
-        // Create queue entry
+        // Create queue entry (facts)
         Queue queue = new Queue();
         queue.setPatientId(patientId);
         queue.setClinicId(request.getClinicId());
         queue.setServiceId(request.getServiceId());
         queue.setStatus(QueueStatus.WAITING);
         queue.setJoinTime(LocalDateTime.now());
+        queue.setAssignedDoctorId(null);
 
-        queue.setQueuePosition(calculateQueuePosition(queue));
+        // queuePosition is derived; keep stored value but don't treat it as the source of truth
+        queue.setQueuePosition(0);
+
         queue = queueRepository.save(queue);
 
         return mapToResponseDTO(queue);
     }
 
     public QueueResponseDTO getPatientQueue(String patientId) {
-        Queue queue = queueRepository.findByPatientIdAndStatus(patientId, QueueStatus.WAITING)
+        Queue queue = queueRepository.findFirstByPatientIdAndStatusIn(patientId, ACTIVE_STATUSES)
                 .orElseThrow(() -> new com.springboot.medease.GlobalException.QueueException("No active queue found"));
         return mapToResponseDTO(queue);
-    }
-
-    private int calculateQueuePosition(Queue queue) {
-        long count = queueRepository.countByClinicIdAndServiceIdAndStatusAndJoinTimeBefore(
-                queue.getClinicId(), queue.getServiceId(), QueueStatus.WAITING, queue.getJoinTime());
-        return (int) count + 1;
     }
 
     public java.util.List<Clinic> getAllClinics() {
@@ -65,9 +66,31 @@ public class QueueService {
     private QueueResponseDTO mapToResponseDTO(Queue queue) {
         QueueResponseDTO dto = new QueueResponseDTO();
         dto.setQueueId(queue.getId());
-        dto.setQueuePosition(queue.getQueuePosition());
         dto.setStatus(queue.getStatus());
         dto.setJoinTime(queue.getJoinTime());
+        dto.setAssignedDoctorId(queue.getAssignedDoctorId());
+
+        // Positions are derived from joinTime + status:
+        // - waitingPosition ignores IN_PROGRESS (your “shift” rule)
+        // - overallActivePosition counts WAITING + IN_PROGRESS (optional but useful)
+        Integer waitingPosition = null;
+        if (queue.getStatus() == QueueStatus.WAITING) {
+            long waitingCountAhead = queueRepository.countByClinicIdAndServiceIdAndStatusAndJoinTimeBefore(
+                    queue.getClinicId(), queue.getServiceId(), QueueStatus.WAITING, queue.getJoinTime()
+            );
+            waitingPosition = (int) waitingCountAhead + 1;
+        }
+
+        long activeCountAhead = queueRepository.countByClinicIdAndServiceIdAndStatusInAndJoinTimeBefore(
+                queue.getClinicId(), queue.getServiceId(), ACTIVE_STATUSES, queue.getJoinTime()
+        );
+        int overallActivePosition = (int) activeCountAhead + 1;
+
+        dto.setWaitingPosition(waitingPosition);
+        dto.setOverallActivePosition(overallActivePosition);
+
+        // Keep queuePosition field aligned with WAITING position for now (compatibility)
+        dto.setQueuePosition(waitingPosition != null ? waitingPosition : 0);
 
         // Get clinic and service names
         Clinic clinic = clinicRepository.findById(queue.getClinicId())

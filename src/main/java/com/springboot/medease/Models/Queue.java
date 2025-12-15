@@ -43,4 +43,5 @@ public class Queue {
     @NotNull
     @Indexed
     private LocalDateTime joinTime;
+    private  String assignedDoctorId;
 }
