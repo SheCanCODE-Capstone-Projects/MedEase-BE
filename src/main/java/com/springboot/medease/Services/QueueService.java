@@ -29,6 +29,9 @@ public class QueueService {
     private final QueueRepository queueRepository;
     private final ClinicRepository clinicRepository;
     private final ServiceRepository serviceRepository;
+    private final QueueEventPublisher queueEventPublisher;
+
+
 
     /**
      * Patient joins a queue for a specific clinic + service.
@@ -144,6 +147,29 @@ public class QueueService {
 
         return joinQueue(patientId, idRequest);
     }
+
+    public QueueResponseDTO callNextPatient(String doctorId, String clinicId, String serviceId) {
+
+        Queue next = queueRepository
+                .findByClinicIdAndServiceIdAndStatusOrderByJoinTime(clinicId, serviceId, QueueStatus.WAITING)
+                .stream()
+                .findFirst()
+                .orElseThrow(() -> new QueueException("No patients waiting"));
+
+        next.setStatus(QueueStatus.IN_PROGRESS);
+        next.setAssignedDoctorId(doctorId);
+
+        queueRepository.save(next);
+
+        // Notify all waiting patients in real-time
+        queueEventPublisher.queueUpdated(clinicId, serviceId);
+
+        return mapToResponseDTO(next,
+                clinicRepository.findById(clinicId).orElseThrow(),
+                serviceRepository.findById(serviceId).orElseThrow()
+        );
+    }
+
 
     private QueueResponseDTO mapToResponseDTO(Queue queue, Clinic clinic, Service service) {
         QueueResponseDTO dto = new QueueResponseDTO();
