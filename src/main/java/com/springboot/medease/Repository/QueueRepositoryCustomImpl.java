@@ -4,6 +4,7 @@ import com.springboot.medease.Models.Queue;
 import com.springboot.medease.Models.QueueStatus;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Sort;
+import org.springframework.data.mongodb.core.FindAndModifyOptions;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
@@ -34,7 +35,13 @@ public class QueueRepositoryCustomImpl implements QueueRepositoryCustom {
         update.set("assignedDoctorId", doctorId);
 
         // Atomically find and modify - this is thread-safe
-        Queue result = mongoTemplate.findAndModify(query, update, Queue.class);
+//        Queue result = mongoTemplate.findAndModify(query, update, Queue.class);
+          Queue result = mongoTemplate.findAndModify(
+                         query,
+                      update,
+                  FindAndModifyOptions.options().returnNew(true),
+                    Queue.class
+                        );
 
         return Optional.ofNullable(result);
     }
