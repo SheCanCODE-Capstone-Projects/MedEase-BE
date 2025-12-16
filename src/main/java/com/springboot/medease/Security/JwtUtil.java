@@ -13,8 +13,11 @@ import java.util.Date;
 public class JwtUtil {
     
     private final SecretKey key;
+    private final long expiration;
     
-    public JwtUtil(@Value("${app.jwt.secret:}") String jwtSecret) {
+    public JwtUtil(@Value("${app.jwt.secret:}") String jwtSecret,
+                   @Value("${app.jwt.expiration-ms}") long expiration
+                   ) {
         if (jwtSecret == null || jwtSecret.trim().isEmpty()) {
             throw new IllegalArgumentException("JWT secret must be provided via jwt.secret property or JWT_SECRET environment variable");
         }
@@ -22,8 +25,8 @@ public class JwtUtil {
             throw new IllegalArgumentException("JWT secret must be at least 32 characters long");
         }
         this.key = Keys.hmacShaKeyFor(jwtSecret.getBytes());
+        this.expiration = expiration;
     }
-    private final long expiration = 86400000; // 24 hours
 
     public String generateToken(String username, String role) {
         return Jwts.builder()
