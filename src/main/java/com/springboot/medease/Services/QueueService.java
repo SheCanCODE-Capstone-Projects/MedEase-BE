@@ -162,16 +162,10 @@ public class QueueService {
     @Transactional
     public QueueResponseDTO callNextPatient(String doctorId, String clinicId, String serviceId) {
 
+        // Atomically find and assign the next patient - prevents race conditions
         Queue next = queueRepository
-                .findByClinicIdAndServiceIdAndStatusOrderByJoinTime(clinicId, serviceId, QueueStatus.WAITING)
-                .stream()
-                .findFirst()
+                .findAndAssignNextPatient(clinicId, serviceId, doctorId)
                 .orElseThrow(() -> new QueueException("No patients waiting"));
-
-        next.setStatus(QueueStatus.IN_PROGRESS);
-        next.setAssignedDoctorId(doctorId);
-
-        queueRepository.save(next);
 
         // Notify all waiting patients in real-time
         queueEventPublisher.patientCalled(clinicId, serviceId, next.getPatientId());
