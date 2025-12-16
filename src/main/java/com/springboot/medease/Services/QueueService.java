@@ -178,8 +178,10 @@ public class QueueService {
 
 
         return mapToResponseDTO(next,
-                clinicRepository.findById(clinicId).orElseThrow(),
-                serviceRepository.findById(serviceId).orElseThrow()
+                clinicRepository.findById(clinicId)
+                    .orElseThrow(() -> new QueueException("Clinic not found: " + clinicId)),
+                serviceRepository.findById(serviceId)
+                    .orElseThrow(() -> new QueueException("Service not found: " + serviceId))
         );
     }
 
@@ -224,6 +226,10 @@ public class QueueService {
         Queue queue = queueRepository.findById(queueId)
                 .orElseThrow(() -> new QueueException("Queue entry not found"));
 
+        if (!clinicId.equals(queue.getClinicId()) || !serviceId.equals(queue.getServiceId())) {
+            throw new QueueException("Clinic or service mismatch for this queue entry");
+        }
+
         if (!doctorId.equals(queue.getAssignedDoctorId())) {
             throw new QueueException("This patient is not assigned to you");
         }
@@ -236,7 +242,7 @@ public class QueueService {
         queueRepository.save(queue);
 
         // Notify all waiting patients that someone completed
-        queueEventPublisher.patientCompleted(clinicId, serviceId, queue.getPatientId());
+        queueEventPublisher.patientCompleted(queue.getClinicId(), queue.getServiceId(), queue.getPatientId());
     }
 
     /**
