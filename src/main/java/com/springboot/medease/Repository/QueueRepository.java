@@ -23,4 +23,9 @@ public interface QueueRepository extends MongoRepository<Queue, String> {
 
     List<Queue> findByClinicIdAndServiceIdAndStatusOrderByJoinTime(
             String clinicId, String serviceId, QueueStatus status);
+
+    long countByClinicIdAndServiceIdAndStatus(
+            String clinicId, String serviceId, QueueStatus status);
+
+    Optional<Queue> findByAssignedDoctorIdAndStatus(String doctorId, QueueStatus status);
 }

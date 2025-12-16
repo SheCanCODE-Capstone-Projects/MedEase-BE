@@ -73,13 +73,22 @@ public class QueueService {
 
         try {
             queue = queueRepository.save(queue);
+
+            // ADD THIS LINE: Notify all patients that someone joined
+            queueEventPublisher.patientJoined(clinicId, serviceId, patientId);
+
         } catch (DuplicateKeyException ex) {
             // Race condition: another request inserted an active queue for same patientId
             throw new QueueConflictException("Patient already has an active queue entry");
         }
 
+
+
         return mapToResponseDTO(queue, clinic, service);
     }
+
+
+
 
     /**
      * Returns the patient's active queue entry (WAITING or IN_PROGRESS).
@@ -162,7 +171,8 @@ public class QueueService {
         queueRepository.save(next);
 
         // Notify all waiting patients in real-time
-        queueEventPublisher.queueUpdated(clinicId, serviceId);
+        queueEventPublisher.patientCalled(clinicId, serviceId, next.getPatientId());
+
 
         return mapToResponseDTO(next,
                 clinicRepository.findById(clinicId).orElseThrow(),
@@ -170,6 +180,120 @@ public class QueueService {
         );
     }
 
+    /**
+     * Get all waiting patients for a clinic and service
+     */
+    public List<QueueResponseDTO> getWaitingPatients(String clinicId, String serviceId) {
+        Clinic clinic = clinicRepository.findById(clinicId)
+                .orElseThrow(() -> new QueueException("Clinic not found"));
+        Service service = serviceRepository.findById(serviceId)
+                .orElseThrow(() -> new QueueException("Service not found"));
+
+        List<Queue> waitingQueues = queueRepository
+                .findByClinicIdAndServiceIdAndStatusOrderByJoinTime(clinicId, serviceId, QueueStatus.WAITING);
+
+        return waitingQueues.stream()
+                .map(queue -> mapToResponseDTO(queue, clinic, service))
+                .collect(java.util.stream.Collectors.toList());
+    }
+
+    /**
+     * Get current patient being served by a doctor
+     */
+    public QueueResponseDTO getCurrentPatientForDoctor(String doctorId) {
+        Queue queue = queueRepository.findByAssignedDoctorIdAndStatus(doctorId, QueueStatus.IN_PROGRESS)
+                .orElseThrow(() -> new QueueException("No patient currently being served"));
+
+        Clinic clinic = clinicRepository.findById(queue.getClinicId())
+                .orElseThrow(() -> new QueueException("Clinic not found"));
+        Service service = serviceRepository.findById(queue.getServiceId())
+                .orElseThrow(() -> new QueueException("Service not found"));
+
+        return mapToResponseDTO(queue, clinic, service);
+    }
+
+    /**
+     * Complete a patient's appointment
+     */
+    public void completePatient(String queueId, String doctorId, String clinicId, String serviceId) {
+        Queue queue = queueRepository.findById(queueId)
+                .orElseThrow(() -> new QueueException("Queue entry not found"));
+
+        if (!doctorId.equals(queue.getAssignedDoctorId())) {
+            throw new QueueException("This patient is not assigned to you");
+        }
+
+        if (queue.getStatus() != QueueStatus.IN_PROGRESS) {
+            throw new QueueException("Patient is not currently in progress");
+        }
+
+        queue.setStatus(QueueStatus.COMPLETED);
+        queueRepository.save(queue);
+
+        // Notify all waiting patients that someone completed
+        queueEventPublisher.patientCompleted(clinicId, serviceId, queue.getPatientId());
+    }
+
+    /**
+     * Get patient's current position in queue with additional context
+     */
+    public com.springboot.medease.DTOs.QueuePositionDTO getPatientPosition(String patientId) {
+        Queue queue = queueRepository.findFirstByPatientIdAndStatusIn(patientId, ACTIVE_STATUSES)
+                .orElseThrow(() -> new QueueException("No active queue found"));
+
+        Clinic clinic = clinicRepository.findById(queue.getClinicId())
+                .orElseThrow(() -> new QueueException("Clinic not found"));
+        Service service = serviceRepository.findById(queue.getServiceId())
+                .orElseThrow(() -> new QueueException("Service not found"));
+
+        Integer position = null;
+        long totalWaiting = queueRepository.countByClinicIdAndServiceIdAndStatus(
+                queue.getClinicId(), queue.getServiceId(), QueueStatus.WAITING);
+
+        String message;
+        if (queue.getStatus() == QueueStatus.WAITING) {
+            long waitingCountAhead = queueRepository.countByClinicIdAndServiceIdAndStatusAndJoinTimeBefore(
+                    queue.getClinicId(), queue.getServiceId(), QueueStatus.WAITING, queue.getJoinTime()
+            );
+            position = Math.toIntExact(waitingCountAhead + 1);
+            message = position == 1 ? "You're next!" : position + " patient(s) ahead of you";
+        } else if (queue.getStatus() == QueueStatus.IN_PROGRESS) {
+            message = "You are currently being served";
+        } else {
+            message = "Queue status: " + queue.getStatus();
+        }
+
+        return com.springboot.medease.DTOs.QueuePositionDTO.builder()
+                .queueId(queue.getId())
+                .position(position)
+                .totalWaiting((int) totalWaiting)
+                .status(queue.getStatus())
+                .clinicName(clinic.getName())
+                .serviceName(service.getName())
+                .joinTime(queue.getJoinTime())
+                .estimatedWaitTime(calculateEstimatedWaitTime(position))
+                .message(message)
+                .build();
+    }
+
+    /**
+     * Calculate estimated wait time (simple implementation)
+     * You can enhance this based on historical data
+     */
+    private String calculateEstimatedWaitTime(Integer position) {
+        if (position == null || position <= 0) {
+            return "N/A";
+        }
+        // Assume 10 minutes per patient (adjust based on your needs)
+        int minutes = position * 10;
+        if (minutes < 60) {
+            return minutes + " minutes";
+        } else {
+            int hours = minutes / 60;
+            int remainingMinutes = minutes % 60;
+            return hours + "h " + remainingMinutes + "m";
+        }
+    }
 
     private QueueResponseDTO mapToResponseDTO(Queue queue, Clinic clinic, Service service) {
         QueueResponseDTO dto = new QueueResponseDTO();
