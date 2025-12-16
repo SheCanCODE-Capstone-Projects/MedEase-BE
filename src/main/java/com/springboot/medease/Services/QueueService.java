@@ -14,6 +14,7 @@ import com.springboot.medease.Repository.QueueRepository;
 import com.springboot.medease.Repository.ServiceRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.dao.DuplicateKeyException;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.EnumSet;
@@ -40,6 +41,7 @@ public class QueueService {
      * - We do a friendly pre-check to return a clean message in the normal case.
      * - The DB unique partial index (ux_patient_one_active_queue) is the final guard against race conditions.
      */
+    @Transactional
     public QueueResponseDTO joinQueue(String patientId, JoinQueueRequest request) {
         String clinicId = request.getClinicId();
         String serviceId = request.getServiceId();
@@ -157,6 +159,7 @@ public class QueueService {
         return joinQueue(patientId, idRequest);
     }
 
+    @Transactional
     public QueueResponseDTO callNextPatient(String doctorId, String clinicId, String serviceId) {
 
         Queue next = queueRepository
@@ -214,7 +217,9 @@ public class QueueService {
 
     /**
      * Complete a patient's appointment
+     * This method is transactional to ensure atomicity
      */
+    @Transactional
     public void completePatient(String queueId, String doctorId, String clinicId, String serviceId) {
         Queue queue = queueRepository.findById(queueId)
                 .orElseThrow(() -> new QueueException("Queue entry not found"));
@@ -227,21 +232,11 @@ public class QueueService {
             throw new QueueException("Patient is not currently in progress");
         }
 
-        // Validate that the provided clinic and service IDs match the queue
-        if (!clinicId.equals(queue.getClinicId())) {
-            throw new QueueException("Mismatched clinic ID: expected " + queue.getClinicId() + " but got " + clinicId);
-        }
-
-        if (!serviceId.equals(queue.getServiceId())) {
-            throw new QueueException("Mismatched service ID: expected " + queue.getServiceId() + " but got " + serviceId);
-        }
-
         queue.setStatus(QueueStatus.COMPLETED);
         queueRepository.save(queue);
 
         // Notify all waiting patients that someone completed
-        // Use the queue's IDs to ensure the WebSocket notification is sent to the correct topic
-        queueEventPublisher.patientCompleted(queue.getClinicId(), queue.getServiceId(), queue.getPatientId());
+        queueEventPublisher.patientCompleted(clinicId, serviceId, queue.getPatientId());
     }
 
     /**

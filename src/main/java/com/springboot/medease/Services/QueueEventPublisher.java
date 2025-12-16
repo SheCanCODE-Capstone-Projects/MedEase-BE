@@ -99,7 +99,7 @@ public class QueueEventPublisher {
 
         } catch (Exception e) {
             // Log error but don't fail the main operation
-            logger.error("Failed to publish queue event", e);
+            logger.error("Failed to publish queue event for clinic {} and service {}", clinicId, serviceId, e);
         }
     }
 
