@@ -2,13 +2,14 @@ package com.springboot.medease.Services;
 import org.springframework.stereotype.Service;
 import java.time.Instant;
 import java.util.Map;
-import java.util.Random;
+import java.security.SecureRandom;
 import java.util.concurrent.ConcurrentHashMap;
 
 @Service
 public class OTPService {
 
     private final Map<String, OtpEntry> otpStore = new ConcurrentHashMap<>();
+    private final SecureRandom secureRandom = new SecureRandom();
 
     private static class OtpEntry {
         String identifier;
@@ -22,10 +23,9 @@ public class OTPService {
 
     // Generate a 6-digit OTP
     public String generateOtp(String identifier) {
-        Random random = new Random();
-        int otp = 100000 + random.nextInt(900000);
+        int otp = 100000 + secureRandom.nextInt(900000);
         Instant expiresAt = Instant.now().plusSeconds(120);
-        otpStore.put(String.valueOf(otp), new OtpEntry(identifier, expiresAt));
+        otpStore.put(identifier, new OtpEntry(String.valueOf(otp), expiresAt));
         return String.valueOf(otp);
     }
 

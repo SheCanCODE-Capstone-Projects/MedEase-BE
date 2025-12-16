@@ -392,13 +392,17 @@ public class AuthService {
         String otp = otpService.generateOtp(profileAndRole.profile().getEmail());
 
         // 3. Send OTP via email
-        emailService.sendOtpEmail(profileAndRole.profile().getEmail(), otp);
+        try {
+            emailService.sendOtpEmail(profileAndRole.profile().getEmail(), otp);
+            } catch (Exception e) {
+                    throw new RuntimeException("Failed to send OTP email", e);
+            }
     }
 
 
-    public String verifyOtpAndLogin(String otp) {
-        String email = otpService.validateOtp(otp);
-        if (email == null) {
+    public AuthResponse verifyOtpAndLogin(String otp) {
+        String identifier = otpService.validateOtp(otp);
+        if (identifier == null) {
             throw new BadCredentialsException("Invalid or expired OTP");
         }
 
@@ -406,13 +410,25 @@ public class AuthService {
         User container = userRepository.findById(CONTAINER_ID)
                 .orElseThrow(() -> new BadCredentialsException("User not found"));
 
-        ProfileAndRole profileAndRole = findProfileByEmail(container, email);
+        ProfileAndRole profileAndRole = findProfileByEmail(container, identifier);
         if (profileAndRole == null) {
             throw new BadCredentialsException("User not found");
         }
 
         // 2. Generate JWT
-        return jwtUtil.generateToken(profileAndRole.profile().getEmail(), profileAndRole.role());
+        String token = jwtUtil.generateToken(
+                profileAndRole.profile().getEmail(),
+                profileAndRole.role());
+
+        return new AuthResponse(
+                "Login successful",
+                container.getId(),
+                identifier,
+                UserType.valueOf(profileAndRole.role()),
+                container.getCreatedAt(),
+                container.getUpdatedAt(),
+                token
+        );
     }
 
 
