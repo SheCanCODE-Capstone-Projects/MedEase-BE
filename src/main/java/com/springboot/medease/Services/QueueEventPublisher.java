@@ -7,6 +7,8 @@ import com.springboot.medease.Repository.ClinicRepository;
 import com.springboot.medease.Repository.QueueRepository;
 import com.springboot.medease.Repository.ServiceRepository;
 import lombok.RequiredArgsConstructor;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 
@@ -16,6 +18,8 @@ import java.util.EnumSet;
 @Service
 @RequiredArgsConstructor
 public class QueueEventPublisher {
+
+    private static final Logger logger = LoggerFactory.getLogger(QueueEventPublisher.class);
 
     private static final EnumSet<QueueStatus> ACTIVE_STATUSES =
             EnumSet.of(QueueStatus.WAITING, QueueStatus.IN_PROGRESS);
@@ -95,7 +99,7 @@ public class QueueEventPublisher {
 
         } catch (Exception e) {
             // Log error but don't fail the main operation
-            System.err.println("Failed to publish queue event: " + e.getMessage());
+            logger.error("Failed to publish queue event", e);
         }
     }
 

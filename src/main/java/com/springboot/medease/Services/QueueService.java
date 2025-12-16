@@ -227,11 +227,21 @@ public class QueueService {
             throw new QueueException("Patient is not currently in progress");
         }
 
+        // Validate that the provided clinic and service IDs match the queue
+        if (!clinicId.equals(queue.getClinicId())) {
+            throw new QueueException("Mismatched clinic ID: expected " + queue.getClinicId() + " but got " + clinicId);
+        }
+
+        if (!serviceId.equals(queue.getServiceId())) {
+            throw new QueueException("Mismatched service ID: expected " + queue.getServiceId() + " but got " + serviceId);
+        }
+
         queue.setStatus(QueueStatus.COMPLETED);
         queueRepository.save(queue);
 
         // Notify all waiting patients that someone completed
-        queueEventPublisher.patientCompleted(clinicId, serviceId, queue.getPatientId());
+        // Use the queue's IDs to ensure the WebSocket notification is sent to the correct topic
+        queueEventPublisher.patientCompleted(queue.getClinicId(), queue.getServiceId(), queue.getPatientId());
     }
 
     /**
