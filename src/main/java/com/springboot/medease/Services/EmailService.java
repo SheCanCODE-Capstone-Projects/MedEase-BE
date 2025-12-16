@@ -1,6 +1,5 @@
 package com.springboot.medease.Services;
 import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.mail.MailException;
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
@@ -12,18 +11,17 @@ public class EmailService {
 
     private final JavaMailSender mailSender;
 
-    @Value("${MAIL_USERNAME}")
-    private String fromEmail;
-
     public void sendOtpEmail(String toEmail, String otp) throws MailException {
+        try {
+            SimpleMailMessage message = new SimpleMailMessage();
+            message.setTo(toEmail);
+            message.setSubject("Your Login OTP");
+            message.setText("Your OTP is: " + otp + "\nThis OTP expires in 2 minutes.");
 
-        SimpleMailMessage message = new SimpleMailMessage();
-        message.setFrom(fromEmail);
-        message.setTo(toEmail);
-        message.setSubject("Your Login OTP");
-        message.setText("Your OTP is: " + otp + "\nThis OTP expires in 2 minutes.");
-
-        mailSender.send(message);
+            mailSender.send(message);
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to send OTP email", e);
+        }
     }
 }
 
