@@ -300,7 +300,7 @@ public class AuthService {
         try {
             idToken = googleIdTokenVerifier.verify(idTokenString);
         } catch (GeneralSecurityException | IOException e) {
-            throw new BadCredentialsException("Invalid Google token" + e.getMessage(), e);
+            throw new BadCredentialsException("Invalid Google token: " + e.getMessage(), e);
         }
 
         if (idToken == null) {

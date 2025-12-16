@@ -24,9 +24,10 @@ public class OTPService {
     // Generate a 6-digit OTP
     public String generateOtp(String identifier) {
         int otp = 100000 + secureRandom.nextInt(900000);
+        String otpString = String.valueOf(otp);
         Instant expiresAt = Instant.now().plusSeconds(120);
-        otpStore.put(identifier, new OtpEntry(String.valueOf(otp), expiresAt));
-        return String.valueOf(otp);
+        otpStore.put(otpString, new OtpEntry(identifier, expiresAt));
+        return otpString;
     }
 
     // Validate OTP
