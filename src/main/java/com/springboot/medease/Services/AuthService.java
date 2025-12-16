@@ -29,6 +29,8 @@ public class AuthService {
     private final JwtUtil jwtUtil;
     private final PatientService patientService;
     private final PatientRepository patientRepository;
+    private final OTPService otpService;
+    private final EmailService emailService;
 
     // ID of the container document (singleton)
     private static final String CONTAINER_ID = "MAIN_USER_CONTAINER";
@@ -36,7 +38,11 @@ public class AuthService {
     public AuthService(UserRepository userRepository,
                        PasswordEncoder passwordEncoder,
                        JwtUtil jwtUtil,
-                       PatientService patientService , PatientRepository patientRepository, @Value("${google.client.id}") String googleClientId) {
+                       PatientService patientService,
+                       PatientRepository patientRepository,
+                       @Value("${google.client.id}") String googleClientId,
+                       OTPService otpService,
+                       EmailService emailService) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
         this.jwtUtil = jwtUtil;
@@ -46,6 +52,8 @@ public class AuthService {
                 new NetHttpTransport(),
                 new GsonFactory()
         ).setAudience(List.of(googleClientId)).build();
+        this.otpService = otpService;
+        this.emailService = emailService;
 
     }
 
@@ -336,5 +344,76 @@ public class AuthService {
                 token
         );
     }
+
+
+    private ProfileAndRole findProfileByIdentifier(User container, String identifier) {
+        boolean isEmail = identifier.contains("@");
+
+
+        List<PatientProfile> patients = container.getPatients() != null ? container.getPatients() : new ArrayList<>();
+        for (PatientProfile p : patients) {
+            if ((isEmail && p.getEmail().equals(identifier)) || (!isEmail && p.getPhoneNumber().equals(identifier))) {
+                return new ProfileAndRole(p, "ROLE_PATIENT");
+            }
+        }
+
+
+        List<DoctorProfile> doctors = container.getDoctors() != null ? container.getDoctors() : new ArrayList<>();
+        for (DoctorProfile d : doctors) {
+            if ((isEmail && d.getEmail().equals(identifier)) || (!isEmail && d.getPhoneNumber().equals(identifier))) {
+                return new ProfileAndRole(d, "ROLE_DOCTOR");
+            }
+        }
+
+
+        List<PharmacistProfile> pharmacists = container.getPharmacists() != null ? container.getPharmacists() : new ArrayList<>();
+        for (PharmacistProfile ph : pharmacists) {
+            if ((isEmail && ph.getEmail().equals(identifier)) || (!isEmail && ph.getPhoneNumber().equals(identifier))) {
+                return new ProfileAndRole(ph, "ROLE_PHARMACIST");
+            }
+        }
+
+        return null;
+    }
+
+
+    public void sendLoginOtp(String identifier, String password) {
+
+        User container = userRepository.findById(CONTAINER_ID)
+                .orElseThrow(() -> new BadCredentialsException("Invalid credentials"));
+
+        // 1. Verify identifier and password first
+        ProfileAndRole profileAndRole = findProfileByIdentifier(container, identifier);
+        if (profileAndRole == null || !passwordEncoder.matches(password, profileAndRole.profile().getPassword())) {
+            throw new BadCredentialsException("Invalid credentials");
+        }
+
+        // 2. Generate OTP
+        String otp = otpService.generateOtp(profileAndRole.profile().getEmail());
+
+        // 3. Send OTP via email
+        emailService.sendOtpEmail(profileAndRole.profile().getEmail(), otp);
+    }
+
+
+    public String verifyOtpAndLogin(String otp) {
+        String email = otpService.validateOtp(otp);
+        if (email == null) {
+            throw new BadCredentialsException("Invalid or expired OTP");
+        }
+
+        // 1. Find the user again
+        User container = userRepository.findById(CONTAINER_ID)
+                .orElseThrow(() -> new BadCredentialsException("User not found"));
+
+        ProfileAndRole profileAndRole = findProfileByEmail(container, email);
+        if (profileAndRole == null) {
+            throw new BadCredentialsException("User not found");
+        }
+
+        // 2. Generate JWT
+        return jwtUtil.generateToken(profileAndRole.profile().getEmail(), profileAndRole.role());
+    }
+
 
 }
