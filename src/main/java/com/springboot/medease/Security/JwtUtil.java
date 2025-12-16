@@ -24,6 +24,13 @@ public class JwtUtil {
         if (jwtSecret.length() < 32) {
             throw new IllegalArgumentException("JWT secret must be at least 32 characters long");
         }
+
+        if (expiration <= 0) {
+             throw new IllegalArgumentException("JWT expiration must be greater than 0");
+               }
+        if (expiration > 31536000000L) { // 365 days in ms
+            throw new IllegalArgumentException("JWT expiration should not exceed 365 days for security reasons");
+              }
         this.key = Keys.hmacShaKeyFor(jwtSecret.getBytes());
         this.expiration = expiration;
     }
