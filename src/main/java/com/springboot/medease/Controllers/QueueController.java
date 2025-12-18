@@ -2,17 +2,20 @@ package com.springboot.medease.Controllers;
 
 import com.springboot.medease.DTOs.JoinQueueByNameRequest;
 import com.springboot.medease.DTOs.JoinQueueRequest;
+import com.springboot.medease.DTOs.QueuePositionDTO;
 import com.springboot.medease.DTOs.QueueResponseDTO;
 import com.springboot.medease.Services.QueueService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/api/patient/queue")
 @RequiredArgsConstructor
+@Validated
 public class QueueController {
 
     private final QueueService queueService;
@@ -48,5 +51,15 @@ public class QueueController {
     @PreAuthorize("hasRole('PATIENT')")
     public java.util.List<com.springboot.medease.Models.Service> getClinicServices(@PathVariable String clinicId) {
         return queueService.getServicesByClinic(clinicId);
+    }
+
+    /**
+     * Get real-time queue position for the patient
+     * This endpoint provides detailed position information including estimated wait time
+     */
+    @GetMapping("/my-position")
+    @PreAuthorize("hasRole('PATIENT')")
+    public QueuePositionDTO getMyPosition(Authentication authentication) {
+        return queueService.getPatientPosition(authentication.getName());
     }
 }
