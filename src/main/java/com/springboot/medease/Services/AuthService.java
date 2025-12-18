@@ -463,7 +463,7 @@ public class AuthService {
 
 
         if (!request.getNewPassword().equals(request.getConfirmPassword())) {
-            throw new RuntimeException("Passwords do not match");
+            throw new BadCredentialsException("Passwords do not match");
         }
 
 
@@ -472,17 +472,17 @@ public class AuthService {
 
 
         if (resetToken.getExpiresAt().isBefore(LocalDateTime.now())) {
-            throw new RuntimeException("Token expired");
+            throw new BadCredentialsException("Token expired");
         }
 
 
         User container = userRepository.findById(CONTAINER_ID)
-                .orElseThrow(() -> new RuntimeException("User container not found"));
+                .orElseThrow(() -> new BadCredentialsException("User container not found"));
 
 
         ProfileAndRole profileAndRole = findProfileByIdentifier(container, resetToken.getEmail());
         if (profileAndRole == null) {
-            throw new RuntimeException("User not found");
+            throw new BadCredentialsException("User not found");
         }
         Profile profile = profileAndRole.profile();
         String role = profileAndRole.role();
