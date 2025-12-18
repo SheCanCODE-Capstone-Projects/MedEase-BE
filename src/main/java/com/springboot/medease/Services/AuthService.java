@@ -6,6 +6,7 @@ import com.google.api.client.json.gson.GsonFactory;
 import com.springboot.medease.DTOs.*;
 import com.springboot.medease.GlobalException.DuplicateResourceException;
 import com.springboot.medease.Models.*;
+import com.springboot.medease.Repository.PasswordResetTokenRepository;
 import com.springboot.medease.Repository.PatientRepository;
 import com.springboot.medease.Repository.UserRepository;
 import com.springboot.medease.Security.JwtUtil;
@@ -31,6 +32,7 @@ public class AuthService {
     private final PatientRepository patientRepository;
     private final OTPService otpService;
     private final EmailService emailService;
+    private final PasswordResetTokenRepository passwordResetTokenRepository;
 
     // ID of the container document (singleton)
     private static final String CONTAINER_ID = "MAIN_USER_CONTAINER";
@@ -42,7 +44,8 @@ public class AuthService {
                        PatientRepository patientRepository,
                        @Value("${google.client.id}") String googleClientId,
                        OTPService otpService,
-                       EmailService emailService) {
+                       EmailService emailService,
+                       PasswordResetTokenRepository passwordResetTokenRepository) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
         this.jwtUtil = jwtUtil;
@@ -54,6 +57,7 @@ public class AuthService {
         ).setAudience(List.of(googleClientId)).build();
         this.otpService = otpService;
         this.emailService = emailService;
+        this.passwordResetTokenRepository = passwordResetTokenRepository;
 
     }
 
@@ -425,6 +429,78 @@ public class AuthService {
                 container.getId(),
                 identifier,
                 UserType.valueOf(profileAndRole.role()),
+                container.getCreatedAt(),
+                container.getUpdatedAt(),
+                token
+        );
+    }
+    public void sendResetPasswordLink(String identifier) {
+
+        User container = userRepository.findById(CONTAINER_ID)
+                .orElseThrow(() -> new BadCredentialsException("No users found"));
+
+        ProfileAndRole profileAndRole = findProfileByIdentifier(container, identifier);
+        if (profileAndRole == null) {
+            throw new BadCredentialsException("User not found");
+        }
+
+        Profile profile = profileAndRole.profile();
+
+
+        String token = UUID.randomUUID().toString();
+        LocalDateTime expiresAt = LocalDateTime.now().plusMinutes(15);
+
+
+        PasswordResetToken resetToken = new PasswordResetToken(null, profile.getEmail(), token, expiresAt);
+        passwordResetTokenRepository.save(resetToken);
+
+
+        String resetLink = "http://localhost:3000/reset-password?token=" + token;
+        emailService.sendResetPasswordEmail(profile.getEmail(), resetLink);
+    }
+
+    public AuthResponse resetPassword(ResetPasswordRequest request) {
+
+
+        if (!request.getNewPassword().equals(request.getConfirmPassword())) {
+            throw new RuntimeException("Passwords do not match");
+        }
+
+
+        PasswordResetToken resetToken = passwordResetTokenRepository.findByToken(request.getToken())
+                .orElseThrow(() -> new RuntimeException("Invalid or expired token"));
+
+
+        if (resetToken.getExpiresAt().isBefore(LocalDateTime.now())) {
+            throw new RuntimeException("Token expired");
+        }
+
+
+        User container = userRepository.findById(CONTAINER_ID)
+                .orElseThrow(() -> new RuntimeException("User container not found"));
+
+
+        ProfileAndRole profileAndRole = findProfileByIdentifier(container, resetToken.getEmail());
+        if (profileAndRole == null) {
+            throw new RuntimeException("User not found");
+        }
+        Profile profile = profileAndRole.profile();
+        String role = profileAndRole.role();
+
+
+        profile.setPassword(passwordEncoder.encode(request.getNewPassword()));
+        userRepository.save(container);
+
+
+        passwordResetTokenRepository.delete(resetToken);
+
+        String token = jwtUtil.generateToken(profile.getEmail(), role);
+
+        return new AuthResponse(
+                "Password reset successful, now you can log in again in your account",
+                container.getId(),
+                profile.getEmail(),
+                UserType.valueOf(role),
                 container.getCreatedAt(),
                 container.getUpdatedAt(),
                 token

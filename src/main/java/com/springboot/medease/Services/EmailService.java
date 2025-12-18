@@ -23,5 +23,20 @@ public class EmailService {
             throw new RuntimeException("Failed to send OTP email", e);
         }
     }
+
+    public void sendResetPasswordEmail(String toEmail, String resetLink) {
+
+        SimpleMailMessage message = new SimpleMailMessage();
+        message.setTo(toEmail);
+        message.setSubject("Reset Your MedEase Password");
+        message.setText(
+                "Click the link below to reset your password:\n\n" +
+                        resetLink +
+                        "\n\nThis link expires in 15 minutes."
+        );
+
+        mailSender.send(message);
+    }
+
 }
 
