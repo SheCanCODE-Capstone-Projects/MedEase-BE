@@ -2,7 +2,7 @@ package com.springboot.medease.DTOs;
 
 import lombok.Data;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 @Data
 public class ConsultationResponseDTO {
 
@@ -12,5 +12,5 @@ public class ConsultationResponseDTO {
     private String doctorId;
     private String patientId;
     private String clinicId;
-    private LocalDateTime timestamp;
+    private Instant timestamp;
 }

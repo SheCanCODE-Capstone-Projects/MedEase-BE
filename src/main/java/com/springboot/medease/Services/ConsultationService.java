@@ -20,8 +20,10 @@ public class ConsultationService {
     public ConsultationResponseDTO save(ConsultationRequestDTO request) {
         validateConsultationRequest(request);
         Consultation consultation = ConsultationMapper.toDocument(request);
+
         Consultation saved = repository.save(consultation);
         return ConsultationMapper.toDTO(saved);
+
     }
 
     private void validateConsultationRequest(ConsultationRequestDTO request) {

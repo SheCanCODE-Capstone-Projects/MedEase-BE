@@ -5,7 +5,6 @@ import com.springboot.medease.DTOs.ConsultationResponseDTO;
 import com.springboot.medease.Models.Consultation;
 
 import java.time.Instant;
-import java.time.LocalDateTime;
 
 public class ConsultationMapper {
 
@@ -28,7 +27,7 @@ public class ConsultationMapper {
         dto.setDoctorId(consultation.getDoctorId());
         dto.setPatientId(consultation.getPatientId());
         dto.setClinicId(consultation.getClinicId());
-        dto.setTimestamp(LocalDateTime.from(consultation.getTimestamp()));
+        dto.setTimestamp(consultation.getTimestamp());
         return dto;
     }
 }
