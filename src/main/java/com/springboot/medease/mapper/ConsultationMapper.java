@@ -4,27 +4,31 @@ import com.springboot.medease.DTOs.ConsultationRequestDTO;
 import com.springboot.medease.DTOs.ConsultationResponseDTO;
 import com.springboot.medease.Models.Consultation;
 
+import java.time.Instant;
+import java.time.LocalDateTime;
+
 public class ConsultationMapper {
 
     public static Consultation toDocument(ConsultationRequestDTO dto) {
-        Consultation c = new Consultation();
-        c.setDiagnosis(dto.getDiagnosis());
-        c.setSymptoms(dto.getSymptoms());
-        c.setDoctorId(dto.getDoctorId());
-        c.setPatientId(dto.getPatientId());
-        c.setClinicId(dto.getClinicId());
-        return c;
+        Consultation consultation = new Consultation();
+        consultation.setDiagnosis(dto.getDiagnosis());
+        consultation.setSymptoms(dto.getSymptoms());
+        consultation.setDoctorId(dto.getDoctorId());
+        consultation.setPatientId(dto.getPatientId());
+        consultation.setClinicId(dto.getClinicId());
+        consultation.setTimestamp(Instant.now()); // consultation time
+        return consultation;
     }
 
-    public static ConsultationResponseDTO toDTO(Consultation doc) {
+    public static ConsultationResponseDTO toDTO(Consultation consultation) {
         ConsultationResponseDTO dto = new ConsultationResponseDTO();
-        dto.setId(doc.getId());
-        dto.setDiagnosis(doc.getDiagnosis());
-        dto.setSymptoms(doc.getSymptoms());
-        dto.setDoctorId(doc.getDoctorId());
-        dto.setPatientId(doc.getPatientId());
-        dto.setClinicId(doc.getClinicId());
-        dto.setTimestamp(doc.getTimestamp());
+        dto.setId(consultation.getId());
+        dto.setDiagnosis(consultation.getDiagnosis());
+        dto.setSymptoms(consultation.getSymptoms());
+        dto.setDoctorId(consultation.getDoctorId());
+        dto.setPatientId(consultation.getPatientId());
+        dto.setClinicId(consultation.getClinicId());
+        dto.setTimestamp(LocalDateTime.from(consultation.getTimestamp()));
         return dto;
     }
 }

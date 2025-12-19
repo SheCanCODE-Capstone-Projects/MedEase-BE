@@ -66,6 +66,9 @@ public class ConsultationService {
     }
 
     public List<ConsultationResponseDTO> findByClinicId(String clinicId) {
+        if (!StringUtils.hasText(clinicId)) {
+            throw new IllegalArgumentException("Clinic ID cannot be empty");
+        }
         return repository.findByClinicId(clinicId).stream()
                 .map(ConsultationMapper::toDTO)
                 .toList();
