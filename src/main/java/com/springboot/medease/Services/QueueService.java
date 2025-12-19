@@ -5,13 +5,12 @@ import com.springboot.medease.DTOs.JoinQueueRequest;
 import com.springboot.medease.DTOs.QueueResponseDTO;
 import com.springboot.medease.GlobalException.QueueConflictException;
 import com.springboot.medease.GlobalException.QueueException;
-import com.springboot.medease.Models.Clinic;
-import com.springboot.medease.Models.Queue;
-import com.springboot.medease.Models.QueueStatus;
-import com.springboot.medease.Models.Service;
+import com.springboot.medease.Models.*;
+import com.springboot.medease.Models.User;
 import com.springboot.medease.Repository.ClinicRepository;
 import com.springboot.medease.Repository.QueueRepository;
 import com.springboot.medease.Repository.ServiceRepository;
+import com.springboot.medease.Repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.transaction.annotation.Transactional;
@@ -30,6 +29,7 @@ public class QueueService {
     private final QueueRepository queueRepository;
     private final ClinicRepository clinicRepository;
     private final ServiceRepository serviceRepository;
+    private final UserRepository userRepository;
     private final QueueEventPublisher queueEventPublisher;
 
 
@@ -121,6 +121,7 @@ public class QueueService {
     public QueueResponseDTO joinQueueByNames(String patientId, JoinQueueByNameRequest request) {
         String clinicName = request.getClinicName().trim();
         String serviceName = request.getServiceName().trim();
+        String doctorName = request.getDoctorName() != null ? request.getDoctorName().trim() : null;
 
         List<Clinic> clinics = clinicRepository.findByNameIgnoreCase(clinicName);
         if (clinics.isEmpty()) {
@@ -152,11 +153,43 @@ public class QueueService {
                         "Service not found: " + serviceName + " for clinic " + clinic.getName()
                 ));
 
+        // Handle optional doctor selection
+        String selectedDoctorId = null;
+        if (doctorName != null && !doctorName.isEmpty()) {
+            List<User> usersWithDoctor = userRepository.findUsersWithDoctorByName(doctorName);
+            if (usersWithDoctor.isEmpty()) {
+                throw new QueueException("Doctor not found: " + doctorName);
+            }
+            if (usersWithDoctor.size() > 1) {
+                throw new QueueException("Multiple doctors found with name '" + doctorName + "'. Please be more specific.");
+            }
+            User user = usersWithDoctor.get(0);
+            // Assuming the first doctor profile is the one we want
+            if (user.getDoctors() != null && !user.getDoctors().isEmpty()) {
+                selectedDoctorId = user.getId(); // Use user ID as doctor ID
+            } else {
+                throw new QueueException("Doctor not found: " + doctorName);
+            }
+        }
+
         JoinQueueRequest idRequest = new JoinQueueRequest();
         idRequest.setClinicId(clinic.getId());
         idRequest.setServiceId(service.getId());
+        // Note: JoinQueueRequest doesn't have doctorId, so we need to modify joinQueue to accept it
+        // For now, we'll handle doctor assignment in joinQueue
 
-        return joinQueue(patientId, idRequest);
+        QueueResponseDTO response = joinQueue(patientId, idRequest);
+
+        // If doctor was selected, update the queue entry with the selected doctor
+        if (selectedDoctorId != null) {
+            Queue queue = queueRepository.findById(response.getQueueId())
+                    .orElseThrow(() -> new QueueException("Queue entry not found"));
+            queue.setAssignedDoctorId(selectedDoctorId);
+            queueRepository.save(queue);
+            response.setAssignedDoctorId(selectedDoctorId);
+        }
+
+        return response;
     }
 
     @Transactional
