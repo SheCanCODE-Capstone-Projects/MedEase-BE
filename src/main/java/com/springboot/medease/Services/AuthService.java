@@ -1,14 +1,22 @@
 package com.springboot.medease.Services;
-
+import com.google.api.client.googleapis.auth.oauth2.GoogleIdToken;
+import com.google.api.client.googleapis.auth.oauth2.GoogleIdTokenVerifier;
+import com.google.api.client.http.javanet.NetHttpTransport;
+import com.google.api.client.json.gson.GsonFactory;
 import com.springboot.medease.DTOs.*;
 import com.springboot.medease.GlobalException.DuplicateResourceException;
 import com.springboot.medease.Models.*;
+import com.springboot.medease.Repository.PasswordResetTokenRepository;
 import com.springboot.medease.Repository.PatientRepository;
 import com.springboot.medease.Repository.UserRepository;
 import com.springboot.medease.Security.JwtUtil;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+
+import java.io.IOException;
+import java.security.GeneralSecurityException;
 import java.time.LocalDateTime;
 import java.util.*;
 import java.util.Collections;
@@ -16,11 +24,15 @@ import java.util.Collections;
 @Service
 public class AuthService {
 
+    private final GoogleIdTokenVerifier googleIdTokenVerifier;
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtUtil jwtUtil;
     private final PatientService patientService;
     private final PatientRepository patientRepository;
+    private final OTPService otpService;
+    private final EmailService emailService;
+    private final PasswordResetTokenRepository passwordResetTokenRepository;
 
     // ID of the container document (singleton)
     private static final String CONTAINER_ID = "MAIN_USER_CONTAINER";
@@ -28,12 +40,25 @@ public class AuthService {
     public AuthService(UserRepository userRepository,
                        PasswordEncoder passwordEncoder,
                        JwtUtil jwtUtil,
-                       PatientService patientService , PatientRepository patientRepository) {
+                       PatientService patientService,
+                       PatientRepository patientRepository,
+                       @Value("${google.client.id}") String googleClientId,
+                       OTPService otpService,
+                       EmailService emailService,
+                       PasswordResetTokenRepository passwordResetTokenRepository) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
         this.jwtUtil = jwtUtil;
         this.patientService = patientService;
         this.patientRepository = patientRepository;
+        this.googleIdTokenVerifier = new GoogleIdTokenVerifier.Builder(
+                new NetHttpTransport(),
+                new GsonFactory()
+        ).setAudience(List.of(googleClientId)).build();
+        this.otpService = otpService;
+        this.emailService = emailService;
+        this.passwordResetTokenRepository = passwordResetTokenRepository;
+
     }
 
     public AuthResponse registerPatient(PatientRegisterRequest req) {
@@ -166,12 +191,16 @@ public class AuthService {
 
         Object profile ;
         UserType userType = null;
+
+
         List<PatientProfile> patients = container.getPatients() != null ? container.getPatients() : Collections.emptyList();
         profile = patients.stream()
                 .filter(p -> isEmail ? p.getEmail().equals(identifier) : p.getPhoneNumber().equals(identifier))
                 .findFirst()
                 .orElse(null);
         if (profile != null) userType = UserType.ROLE_PATIENT;
+
+
         if (profile == null) {
             List<DoctorProfile> doctors = container.getDoctors() != null ? container.getDoctors() : Collections.emptyList();
             profile = doctors.stream()
@@ -234,4 +263,249 @@ public class AuthService {
         while (patientRepository.existsByPatientReference(reference));
         return reference;
     }
+
+    // Record to hold profile and role
+    private record ProfileAndRole(Profile profile, String role) {}
+
+    // Helper method to find profile and role by email
+    private ProfileAndRole findProfileByEmail(User container, String email) {
+
+        // Check patients
+        List<PatientProfile> patients = container.getPatients() != null ? container.getPatients() : new ArrayList<>();
+        Profile profile = patients.stream()
+                .filter(p -> p.getEmail().equals(email))
+                .findFirst()
+                .orElse(null);
+        if (profile != null) return new ProfileAndRole(profile, "ROLE_PATIENT");
+
+        // Check doctors
+        List<DoctorProfile> doctors = container.getDoctors() != null ? container.getDoctors() : new ArrayList<>();
+        profile = doctors.stream()
+                .filter(d -> d.getEmail().equals(email))
+                .findFirst()
+                .orElse(null);
+        if (profile != null) return new ProfileAndRole(profile, "ROLE_DOCTOR");
+
+        // Check pharmacists
+        List<PharmacistProfile> pharmacists = container.getPharmacists() != null ? container.getPharmacists() : new ArrayList<>();
+        profile = pharmacists.stream()
+                .filter(ph -> ph.getEmail().equals(email))
+                .findFirst()
+                .orElse(null);
+        if (profile != null) return new ProfileAndRole(profile, "ROLE_PHARMACIST");
+
+        return null; // Not found
+    }
+
+
+    public AuthResponse googleLogin(String idTokenString) {
+
+        GoogleIdToken idToken;
+        try {
+            idToken = googleIdTokenVerifier.verify(idTokenString);
+        } catch (GeneralSecurityException | IOException e) {
+            throw new BadCredentialsException("Invalid Google token: " + e.getMessage(), e);
+        }
+
+        if (idToken == null) {
+            throw new BadCredentialsException("Invalid Google token");
+        }
+
+        GoogleIdToken.Payload payload = idToken.getPayload();
+        String email = payload.getEmail();
+
+        Boolean emailVerified = payload.getEmailVerified();
+        if (!Boolean.TRUE.equals(emailVerified)) {
+            throw new BadCredentialsException("Email not verified by Google");
+        }
+
+        // Load container
+        User container = userRepository.findById(CONTAINER_ID)
+                .orElseThrow(() -> new BadCredentialsException("No users found"));
+
+
+        var profileAndRole = findProfileByEmail(container, email);
+
+        if (profileAndRole == null) {
+            throw new BadCredentialsException("User not registered with this email");
+        }
+
+        // BLOCK DOCTORS FROM GOOGLE LOGIN
+        if ("ROLE_DOCTOR".equals(profileAndRole.role())) {
+            throw new BadCredentialsException("Doctors are not allowed to login using Google");
+        }
+
+        // Generate JWT
+        String token = jwtUtil.generateToken(profileAndRole.profile.getEmail(), profileAndRole.role());
+
+        return new AuthResponse(
+                "Google login successful",
+                container.getId(),
+                profileAndRole.profile.getEmail(),
+                UserType.valueOf(profileAndRole.role()),
+                container.getCreatedAt(),
+                container.getUpdatedAt(),
+                token
+        );
+    }
+
+
+    private ProfileAndRole findProfileByIdentifier(User container, String identifier) {
+        boolean isEmail = identifier.contains("@");
+
+
+        List<PatientProfile> patients = container.getPatients() != null ? container.getPatients() : new ArrayList<>();
+        for (PatientProfile p : patients) {
+            if ((isEmail && p.getEmail().equals(identifier)) || (!isEmail && p.getPhoneNumber().equals(identifier))) {
+                return new ProfileAndRole(p, "ROLE_PATIENT");
+            }
+        }
+
+
+        List<DoctorProfile> doctors = container.getDoctors() != null ? container.getDoctors() : new ArrayList<>();
+        for (DoctorProfile d : doctors) {
+            if ((isEmail && d.getEmail().equals(identifier)) || (!isEmail && d.getPhoneNumber().equals(identifier))) {
+                return new ProfileAndRole(d, "ROLE_DOCTOR");
+            }
+        }
+
+
+        List<PharmacistProfile> pharmacists = container.getPharmacists() != null ? container.getPharmacists() : new ArrayList<>();
+        for (PharmacistProfile ph : pharmacists) {
+            if ((isEmail && ph.getEmail().equals(identifier)) || (!isEmail && ph.getPhoneNumber().equals(identifier))) {
+                return new ProfileAndRole(ph, "ROLE_PHARMACIST");
+            }
+        }
+
+        return null;
+    }
+
+
+    public void sendLoginOtp(String identifier, String password) {
+
+        User container = userRepository.findById(CONTAINER_ID)
+                .orElseThrow(() -> new BadCredentialsException("Invalid credentials"));
+
+        // 1. Verify identifier and password first
+        ProfileAndRole profileAndRole = findProfileByIdentifier(container, identifier);
+        if (profileAndRole == null || !passwordEncoder.matches(password, profileAndRole.profile().getPassword())) {
+            throw new BadCredentialsException("Invalid credentials");
+        }
+
+        // 2. Generate OTP
+        String otp = otpService.generateOtp(profileAndRole.profile().getEmail());
+
+        // 3. Send OTP via email
+        try {
+            emailService.sendOtpEmail(profileAndRole.profile().getEmail(), otp);
+            } catch (Exception e) {
+                    throw new RuntimeException("Failed to send OTP email", e);
+            }
+    }
+
+
+    public AuthResponse verifyOtpAndLogin(String otp) {
+        String identifier = otpService.validateOtp(otp);
+        if (identifier == null) {
+            throw new BadCredentialsException("Invalid or expired OTP");
+        }
+
+        // 1. Find the user again
+        User container = userRepository.findById(CONTAINER_ID)
+                .orElseThrow(() -> new BadCredentialsException("User not found"));
+
+        ProfileAndRole profileAndRole = findProfileByEmail(container, identifier);
+        if (profileAndRole == null) {
+            throw new BadCredentialsException("User not found");
+        }
+
+        // 2. Generate JWT
+        String token = jwtUtil.generateToken(
+                profileAndRole.profile().getEmail(),
+                profileAndRole.role());
+
+        return new AuthResponse(
+                "Login successful",
+                container.getId(),
+                identifier,
+                UserType.valueOf(profileAndRole.role()),
+                container.getCreatedAt(),
+                container.getUpdatedAt(),
+                token
+        );
+    }
+    public void sendResetPasswordLink(String identifier) {
+
+        User container = userRepository.findById(CONTAINER_ID)
+                .orElseThrow(() -> new BadCredentialsException("No users found"));
+
+        ProfileAndRole profileAndRole = findProfileByIdentifier(container, identifier);
+        if (profileAndRole == null) {
+            throw new BadCredentialsException("User not found");
+        }
+
+        Profile profile = profileAndRole.profile();
+
+
+        String token = UUID.randomUUID().toString();
+        LocalDateTime expiresAt = LocalDateTime.now().plusMinutes(15);
+
+
+        PasswordResetToken resetToken = new PasswordResetToken(null, profile.getEmail(), token, expiresAt);
+        passwordResetTokenRepository.save(resetToken);
+
+
+        String resetLink = "http://localhost:3000/reset-password?token=" + token;
+        emailService.sendResetPasswordEmail(profile.getEmail(), resetLink);
+    }
+
+    public AuthResponse resetPassword(ResetPasswordRequest request) {
+
+
+        if (!request.getNewPassword().equals(request.getConfirmPassword())) {
+            throw new BadCredentialsException("Passwords do not match");
+        }
+
+
+        PasswordResetToken resetToken = passwordResetTokenRepository.findByToken(request.getToken())
+                .orElseThrow(() -> new RuntimeException("Invalid or expired token"));
+
+
+        if (resetToken.getExpiresAt().isBefore(LocalDateTime.now())) {
+            throw new BadCredentialsException("Token expired");
+        }
+
+
+        User container = userRepository.findById(CONTAINER_ID)
+                .orElseThrow(() -> new BadCredentialsException("User container not found"));
+
+
+        ProfileAndRole profileAndRole = findProfileByIdentifier(container, resetToken.getEmail());
+        if (profileAndRole == null) {
+            throw new BadCredentialsException("User not found");
+        }
+        Profile profile = profileAndRole.profile();
+        String role = profileAndRole.role();
+
+
+        profile.setPassword(passwordEncoder.encode(request.getNewPassword()));
+        userRepository.save(container);
+
+
+        passwordResetTokenRepository.delete(resetToken);
+
+        String token = jwtUtil.generateToken(profile.getEmail(), role);
+
+        return new AuthResponse(
+                "Password reset successful, now you can log in again in your account",
+                container.getId(),
+                profile.getEmail(),
+                UserType.valueOf(role),
+                container.getCreatedAt(),
+                container.getUpdatedAt(),
+                token
+        );
+    }
+
+
 }
