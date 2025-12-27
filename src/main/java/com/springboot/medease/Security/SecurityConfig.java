@@ -39,9 +39,17 @@ public class SecurityConfig {
 
                 .csrf(AbstractHttpConfigurer::disable)
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/api/auth/register", "/api/auth/login", "/api/auth/pharmacist/register").permitAll()
-                        .requestMatchers("/api/consultation/**", "/api/consultations/**").permitAll()
-                        .requestMatchers("/api/patients/*/medical/**").permitAll()
+                        .requestMatchers(
+                                "/swagger-ui/**",
+                                "/v3/api-docs/**",
+                                "/api/auth/register",
+                                "/api/auth/login/send/otp",
+                                "/api/auth/pharmacist/register",
+                                "/api/auth/google/login",
+                                "/api/auth/login/verify/otp",
+                                "/api/auth/password/reset/request",
+                                "/api/auth/password/reset"
+                                ).permitAll()
                         .requestMatchers("/api/pharmacy/**").hasRole("PHARMACIST")
                         .requestMatchers("/api/patient/**").hasRole("PATIENT")
                         .requestMatchers("/api/doctor/**").hasRole("DOCTOR")
