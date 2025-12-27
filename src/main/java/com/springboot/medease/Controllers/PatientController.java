@@ -6,7 +6,6 @@ import com.springboot.medease.DTOs.PatientUpdateRequest;
 import com.springboot.medease.Models.Patient;
 
 import com.springboot.medease.Services.PatientService;
-import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import lombok.RequiredArgsConstructor;
