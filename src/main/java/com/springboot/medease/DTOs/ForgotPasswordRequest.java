@@ -1,6 +1,6 @@
 package com.springboot.medease.DTOs;
 
-import  jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotBlank;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -8,11 +8,9 @@ import lombok.NoArgsConstructor;
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
-public class LoginRequest {
+public class ForgotPasswordRequest {
 
-    @NotBlank
+    @NotBlank(message = "Email or phone number is required")
     private String identifier;
-    @NotBlank
-    private String password;
 }
 

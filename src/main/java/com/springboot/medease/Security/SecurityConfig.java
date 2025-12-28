@@ -40,15 +40,10 @@ public class SecurityConfig {
                 .csrf(AbstractHttpConfigurer::disable)
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/api/auth/register", "/api/auth/login", "/api/auth/pharmacist/register").permitAll()
-                        .requestMatchers("/api/consultation/**", "/api/consultations/**").permitAll()
-                        .requestMatchers("/api/patients/*/medical/**").permitAll()
                         .requestMatchers("/api/pharmacy/**").hasRole("PHARMACIST")
                         .requestMatchers("/api/patient/**").hasRole("PATIENT")
                         .requestMatchers("/api/doctor/**").hasRole("DOCTOR")
-                        .requestMatchers(HttpMethod.POST, "/api/patients").hasRole("DOCTOR")
-                        .requestMatchers(HttpMethod.POST, "/api/patient/*/chronic-disease").hasRole("DOCTOR")
-                        .requestMatchers(HttpMethod.POST, "/api/patient/*/allergy").hasRole("DOCTOR")
-                        .requestMatchers(HttpMethod.GET, "/api/patient/*/medical-history").hasAnyRole("DOCTOR", "PHARMACIST")
+                        .requestMatchers(HttpMethod.POST , "/api/patients" ).hasRole("DOCTOR")
                         .anyRequest().authenticated()
                 )
                 .sessionManagement(session -> session
