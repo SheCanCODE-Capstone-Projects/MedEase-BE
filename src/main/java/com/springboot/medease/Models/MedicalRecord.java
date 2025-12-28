@@ -4,16 +4,26 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
 
 import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.List;
+
 @Data
-@AllArgsConstructor
-@NoArgsConstructor
+@Document(collection = "medical_records")
 @Builder
+@AllArgsConstructor
+@NoArgsConstructor(force = true)
 public class MedicalRecord {
 
-    private String name;
-    private String diagnosingDoctorId;
-    private LocalDate recordedAt;
+    @Id
+    private String id;
+
+    private String patientId;
+
+    private List<ChronicCondition> chronicConditions = new ArrayList<>();
+
 }
+

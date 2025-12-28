@@ -25,11 +25,7 @@ public class PatientMedicalService {
         Patient patient = getPatient(patientId);
 
         patient.getChronicDiseases().add(
-                MedicalRecord.builder()
-                        .name(request.getName())
-                        .diagnosingDoctorId(doctorId)
-                        .recordedAt(LocalDate.now())
-                        .build()
+                new MedicalRecord()
         );
 
         return patientRepository.save(patient);
@@ -43,11 +39,7 @@ public class PatientMedicalService {
         Patient patient = getPatient(patientId);
 
         patient.getAllergies().add(
-                MedicalRecord.builder()
-                        .name(request.getName())
-                        .diagnosingDoctorId(doctorId)
-                        .recordedAt(LocalDate.now())
-                        .build()
+                new MedicalRecord()
         );
 
         return patientRepository.save(patient);
