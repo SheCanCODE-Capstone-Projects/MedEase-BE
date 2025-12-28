@@ -14,4 +14,7 @@ public class JoinQueueByNameRequest {
 
     @NotBlank
     private String serviceName;
+
+    // Optional: patient can choose a specific doctor
+    private String doctorName;
 }
