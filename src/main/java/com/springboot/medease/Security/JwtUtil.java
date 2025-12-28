@@ -16,7 +16,7 @@ public class JwtUtil {
     private final long expiration;
     
     public JwtUtil(@Value("${app.jwt.secret:}") String jwtSecret,
-                   @Value("${app.jwt.expiration-ms}") long expiration
+                   @Value("${app.jwt.expiration-ms:86400000}") long expiration
                    ) {
         if (jwtSecret == null || jwtSecret.trim().isEmpty()) {
             throw new IllegalArgumentException("JWT secret must be provided via jwt.secret property or JWT_SECRET environment variable");

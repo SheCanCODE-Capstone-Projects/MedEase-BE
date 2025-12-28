@@ -25,6 +25,12 @@ public class AuthController {
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
+    @PostMapping("/login")
+    public ResponseEntity<AuthResponse> login(@Valid @RequestBody LoginRequest request) {
+        AuthResponse response = authService.login(request);
+        return ResponseEntity.ok(response);
+    }
+
     @PostMapping("/google/login")
     public ResponseEntity<AuthResponse> googleLogin(@Valid @RequestBody GoogleLoginRequest request) {
         AuthResponse response = authService.googleLogin(request.getIdToken());
@@ -32,9 +38,9 @@ public class AuthController {
     }
 
     @PostMapping("/login/send/otp")
-    public ResponseEntity<String> loginAndSendOtp(@Valid @RequestBody LoginRequest request) {
-        authService.sendLoginOtp(request.getIdentifier(), request.getPassword());
-        return ResponseEntity.ok("OTP sent to your email");
+    public ResponseEntity<AuthResponse> loginAndSendOtp(@Valid @RequestBody LoginRequest request) {
+        AuthResponse response = authService.login(request);
+        return ResponseEntity.ok(response);
     }
 
     @PostMapping("/login/verify/otp")
