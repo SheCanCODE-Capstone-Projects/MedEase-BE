@@ -26,6 +26,8 @@ public class Patient extends PatientProfile {
     private List<MedicalRecord> chronicDiseases = new ArrayList<>();
     private List<MedicalRecord> allergies = new ArrayList<>();
 
+    private List<ConsultationRef> consultations = new ArrayList<>();
+
 
 }
 
