@@ -38,9 +38,9 @@ public class AuthController {
     }
 
     @PostMapping("/login/send/otp")
-    public ResponseEntity<String> loginAndSendOtp(@Valid @RequestBody LoginRequest request) {
-        authService.sendLoginOtp(request.getIdentifier(), request.getPassword());
-        return ResponseEntity.ok("OTP sent to your email");
+    public ResponseEntity<AuthResponse> loginAndSendOtp(@Valid @RequestBody LoginRequest request) {
+        AuthResponse response = authService.login(request);
+        return ResponseEntity.ok(response);
     }
 
     @PostMapping("/login/verify/otp")
