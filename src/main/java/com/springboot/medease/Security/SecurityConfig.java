@@ -43,9 +43,10 @@ public class SecurityConfig {
                                 "/swagger-ui/**",
                                 "/v3/api-docs/**",
                                 "/api/auth/register",
-                                "/api/auth/login/send/otp",
                                 "/api/auth/pharmacist/register",
+                                "/api/auth/login",
                                 "/api/auth/google/login",
+                                "/api/auth/login/send/otp",
                                 "/api/auth/login/verify/otp",
                                 "/api/auth/password/reset/request",
                                 "/api/auth/password/reset"
