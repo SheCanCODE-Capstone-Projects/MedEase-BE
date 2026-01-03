@@ -40,6 +40,9 @@ public class SecurityConfig {
                 .csrf(AbstractHttpConfigurer::disable)
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/api/auth/register", "/api/auth/login", "/api/auth/pharmacist/register").permitAll()
+                        .requestMatchers("/swagger-ui/**", "/api-docs/**", "/swagger-ui.html").permitAll()
+                        .requestMatchers("/api/consultation/**", "/api/consultations/**").permitAll()
+                        .requestMatchers("/api/patients/*/medical/**").permitAll()
                         .requestMatchers("/api/pharmacy/**").hasRole("PHARMACIST")
                         .requestMatchers("/api/patient/**").hasRole("PATIENT")
                         .requestMatchers("/api/doctor/**").hasRole("DOCTOR")
