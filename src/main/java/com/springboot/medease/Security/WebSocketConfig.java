@@ -23,7 +23,7 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
     @Override
     public void registerStompEndpoints(StompEndpointRegistry registry) {
         registry.addEndpoint("/ws-queue") // endpoint to connect
-                .setAllowedOrigins("https://yourfrontend.com", "http://localhost:3000")
-                .withSockJS(); // fallback for browsers that don’t support WebSocket
+                .setAllowedOrigins(allowedOrigins)
+                .withSockJS(); // fallback for browsers that don't support WebSocket
     }
 }

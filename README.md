@@ -57,14 +57,63 @@ we use Swagger UI for the the documentation
 
 ## 🚀 Deployment 
 
-Planned deployment platforms:
-- ✅ Docker
-- ✅ Railway / Render
+### CI/CD Pipeline with GitHub Actions & Railway
 
-Here is a step-by step on how to get started 
-### 1️⃣ Clone this  Repository
-### 2️⃣ Configure Database
-### 3️⃣ Run the Application
-## 🐳 Running with Docker (Recommended)
+This project includes a complete CI/CD pipeline that automatically:
+- ✅ Runs tests on every push/PR
+- ✅ Builds Docker image
+- ✅ Deploys to Railway on push to `main` branch
+- ✅ Uses MongoDB Atlas for managed database
+- ✅ Securely manages environment variables
+
+**Quick Setup:**
+1. See [QUICK_START.md](./QUICK_START.md) for a 5-minute setup guide
+2. See [DEPLOYMENT.md](./DEPLOYMENT.md) for detailed deployment instructions
+
+**Deployment Platforms:**
+- ✅ Docker (containerized)
+- ✅ Railway (production hosting)
+- ✅ MongoDB Atlas (managed database)
+
+### Local Development
+
+1. **Clone the Repository**
+   ```bash
+   git clone <repository-url>
+   cd MedEase-BE
+   ```
+
+2. **Configure Environment Variables**
+   - Copy `.env.example` to `.env` (if available)
+   - Set required environment variables (see DEPLOYMENT.md)
+
+3. **Run the Application**
+   ```bash
+   ./mvnw spring-boot:run
+   ```
+
+4. **Access Swagger UI**
+   - Open http://localhost:8091/swagger-ui.html
+
+### 🐳 Running with Docker
+
+```bash
+# Build image
+docker build -t medease-backend .
+
+# Run container
+docker run -p 8091:8091 \
+  -e JWT_SECRET=your-secret \
+  -e DB_URI=your-mongodb-uri \
+  -e GOOGLE_CLIENT_ID=your-client-id \
+  -e MAIL_USERNAME=your-email \
+  -e MAIL_PASSWORD=your-password \
+  medease-backend
+```
+
 ## 🧪 Running Tests
+
+```bash
+./mvnw test
+```
 
