@@ -29,14 +29,7 @@ jobs:
           cache: maven
 
       - name: Run tests
-        run: mvn clean test -B
-        env:
-          JWT_SECRET: ${{ secrets.JWT_SECRET }}
-          JWT_EXPIRATION: ${{ secrets.JWT_EXPIRATION || '86400000' }}
-          DB_URI: ${{ secrets.DB_URI }}
-          GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
-          MAIL_USERNAME: ${{ secrets.MAIL_USERNAME }}
-          MAIL_PASSWORD: ${{ secrets.MAIL_PASSWORD }}
+        run: mvn clean test -B -Dspring.profiles.active=test
 
       - name: Upload test results
         if: always()
