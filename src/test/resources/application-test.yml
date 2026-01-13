@@ -1,0 +1,32 @@
+spring:
+  application:
+    name: MedEase-Test
+  data:
+    mongodb:
+      uri: mongodb://localhost:27017/testdb
+  mail:
+    host: localhost
+    port: 1025
+    username: test@example.com
+    password: test-password
+    properties:
+      mail:
+        smtp:
+          auth: false
+          starttls:
+            enable: false
+
+server:
+  port: 0
+
+app:
+  jwt:
+    secret: test-secret-key-minimum-32-characters-long-for-testing
+    expiration-ms: 86400000
+
+google:
+  client:
+    id: test-client-id
+
+websocket:
+  allowed-origins: http://localhost:3000
