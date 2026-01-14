@@ -1,0 +1,27 @@
+version: '3.8'
+
+services:
+  mongodb:
+    image: mongo:latest
+    container_name: medease-mongodb
+    ports:
+      - "27017:27017"
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: admin
+      MONGO_INITDB_ROOT_PASSWORD: admin123
+    volumes:
+      - mongodb_data:/data/db
+
+  app:
+    build: .
+    container_name: medease-backend
+    ports:
+      - "8080:8080"
+    environment:
+      MONGODB_URI: mongodb://admin:admin123@mongodb:27017/medease?authSource=admin
+      JWT_SECRET: your-secret-key-min-256-bits-long-for-hs256-algorithm
+    depends_on:
+      - mongodb
+
+volumes:
+  mongodb_data:
