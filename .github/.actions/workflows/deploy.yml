@@ -29,6 +29,6 @@ jobs:
       - name: Run Docker Container
         run: |
           docker run -d -p 8080:8080 \
-            -e MONGODB_URI=${{ DB_URI }} \
-            -e JWT_SECRET=${{JWT_SECRET }} \
+            -e MONGODB_URI=${{ secrets.DB_URI }} \
+            -e JWT_SECRET=${{ secrets.JWT_SECRET }} \
             medease-backend
