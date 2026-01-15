@@ -21,6 +21,9 @@ jobs:
           distribution: 'temurin'
 
       - name: Build with Maven
+        env:
+          MONGODB_URI: ${{ secrets.MONGODB_URI }}
+          JWT_SECRET: ${{ secrets.JWT_SECRET }}
         run: mvn clean package
 
       - name: Build Docker Image
