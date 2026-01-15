@@ -1,0 +1,6 @@
+[phases.build]
+cmds = ["./mvnw clean package -DskipTests"]
+
+[phases.start]
+cmd = "java -jar target/MedEase-0.0.1-SNAPSHOT.jar"
+
