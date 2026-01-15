@@ -7,8 +7,8 @@ services:
     ports:
       - "27017:27017"
     environment:
-      MONGO_INITDB_ROOT_USERNAME: admin
-      MONGO_INITDB_ROOT_PASSWORD: admin123
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_USERNAME:-admin}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_PASSWORD:?MongoDB password required}
     volumes:
       - mongodb_data:/data/db
 
@@ -18,8 +18,8 @@ services:
     ports:
       - "8091:8091"
     environment:
-      MONGODB_URI: mongodb://admin:admin123@mongodb:27017/medease?authSource=admin
-      JWT_SECRET: your-secret-key-min-256-bits-long-for-hs256-algorithm
+      MONGODB_URI: mongodb://${MONGO_USERNAME:-admin}:${MONGO_PASSWORD}@mongodb:27017/medease?authSource=admin
+      JWT_SECRET: ${JWT_SECRET:?JWT secret required}
     depends_on:
       - mongodb
 
