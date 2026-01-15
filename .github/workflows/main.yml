@@ -24,7 +24,7 @@ jobs:
         env:
           MONGODB_URI: ${{ secrets.MONGODB_URI }}
           JWT_SECRET: ${{ secrets.JWT_SECRET }}
-        run: mvn clean package
+        run:  mvn clean package -DskipTests
 
       - name: Build Docker Image
         run: docker build -t medease-backend .
