@@ -24,16 +24,15 @@ Automated deployment pipeline using GitHub Actions → Railway → MongoDB Atlas
 
 ### 3. GitHub Secrets
 Add in repository Settings → Secrets:
-```
-RAILWAY_TOKEN=your_railway_token
-RAILWAY_SERVICE=your_service_name
+```env
+MONGODB_URI=mongodb+srv://user:pass@cluster.mongodb.net/MedEase
+JWT_SECRET=your_jwt_secret_min_256_bits
 ```
 
-### 4. Railway Environment Variables
-Set in Railway dashboard:
-```
-MONGODB_URI=mongodb+srv://user:pass@cluster.mongodb.net/MedEase
-JWT_SECRET=your_jwt_secret
+
+### 4. Additional Railway Environment Variables
+Set these in the Railway dashboard:
+```env
 GOOGLE_CLIENT_ID=your_google_client_id
 MAIL_USERNAME=your_email
 MAIL_PASSWORD=your_app_password
@@ -48,7 +47,7 @@ MAIL_PASSWORD=your_app_password
 6. Application live at Railway URL
 
 ## Files
-- `.github/workflows/deploy.yml` - CI/CD pipeline
+- `.github/workflows/main.yml` - CI/CD pipeline
 - `railway.json` - Railway configuration
 - `nixpacks.toml` - Build configuration
 - `application.properties` - Environment variables
