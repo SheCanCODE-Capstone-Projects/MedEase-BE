@@ -19,6 +19,10 @@ import org.springframework.context.annotation.Configuration;
                 @Server(
                         description = "Local ENV",
                         url = "http://localhost:8091/"
+                ),
+                @Server(
+                        description = "Deployed",
+                        url = "https://medease-be.onrender.com"
                 )
 
         }
