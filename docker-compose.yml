@@ -1,0 +1,27 @@
+version: '3.8'
+
+services:
+  mongodb:
+    image: mongo:latest
+    container_name: medease-mongodb
+    ports:
+      - "27017:27017"
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_USERNAME:-admin}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_PASSWORD:?MongoDB password required}
+    volumes:
+      - mongodb_data:/data/db
+
+  app:
+    build: .
+    container_name: medease-backend
+    ports:
+      - "8091:8091"
+    environment:
+      MONGODB_URI: mongodb://${MONGO_USERNAME:-admin}:${MONGO_PASSWORD}@mongodb:27017/medease?authSource=admin
+      JWT_SECRET: ${JWT_SECRET:?JWT secret required}
+    depends_on:
+      - mongodb
+
+volumes:
+  mongodb_data:

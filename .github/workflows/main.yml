@@ -1,0 +1,37 @@
+name: Build and Deploy with Docker
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+
+      - name: Build with Maven
+        env:
+          MONGODB_URI: ${{ secrets.MONGODB_URI }}
+          JWT_SECRET: ${{ secrets.JWT_SECRET }}
+        run:  mvn clean package -DskipTests
+
+      - name: Build Docker Image
+        run: docker build -t medease-backend .
+
+      - name: Run Docker Container
+        run: |
+          docker run -d -p 8091:8091 \
+            -e MONGODB_URI=${{ secrets.MONGODB_URI }} \
+            -e JWT_SECRET=${{ secrets.JWT_SECRET }} \
+            medease-backend
