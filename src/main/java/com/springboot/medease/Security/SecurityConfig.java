@@ -39,7 +39,6 @@ public class SecurityConfig {
 
                 .csrf(AbstractHttpConfigurer::disable)
                 .authorizeHttpRequests(auth -> auth
-<<<<<<< HEAD
                         .requestMatchers(
                                 "/swagger-ui/**",
                                 "/v3/api-docs/**",
@@ -52,12 +51,10 @@ public class SecurityConfig {
                                 "/api/auth/password/reset/request",
                                 "/api/auth/password/reset"
                                 ).permitAll()
-=======
                         .requestMatchers("/api/auth/register", "/api/auth/login", "/api/auth/pharmacist/register").permitAll()
                         .requestMatchers("/swagger-ui/**", "/api-docs/**", "/swagger-ui.html").permitAll()
                         .requestMatchers("/api/consultation/**", "/api/consultations/**").permitAll()
                         .requestMatchers("/api/patients/*/medical/**").permitAll()
->>>>>>> fc2ed242457b02e862b9707cb8197839f0873f6d
                         .requestMatchers("/api/pharmacy/**").hasRole("PHARMACIST")
                         .requestMatchers("/api/patient/**").hasRole("PATIENT")
                         .requestMatchers("/api/doctor/**").hasRole("DOCTOR")
