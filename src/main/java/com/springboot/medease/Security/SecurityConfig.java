@@ -41,6 +41,7 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(
                                 "/swagger-ui/**",
+                                "/swagger-ui.html",
                                 "/v3/api-docs/**",
                                 "/api/auth/register",
                                 "/api/auth/pharmacist/register",
@@ -51,8 +52,6 @@ public class SecurityConfig {
                                 "/api/auth/password/reset/request",
                                 "/api/auth/password/reset"
                                 ).permitAll()
-                        .requestMatchers("/api/auth/register", "/api/auth/login", "/api/auth/pharmacist/register").permitAll()
-                        .requestMatchers("/swagger-ui/**", "/api-docs/**", "/swagger-ui.html").permitAll()
                         .requestMatchers("/api/consultation/**", "/api/consultations/**").permitAll()
                         .requestMatchers("/api/patients/*/medical/**").permitAll()
                         .requestMatchers("/api/pharmacy/**").hasRole("PHARMACIST")
