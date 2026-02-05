@@ -33,8 +33,11 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
         // Skip JWT processing for public endpoints
         if (path.startsWith("/api/auth/") || 
-            path.startsWith("/api/consultation") || 
-            path.startsWith("/api/patients/") && path.contains("/medical/")) {
+            path.startsWith("/api/consultation") ||
+                path.startsWith("/swagger-ui") ||
+                path.startsWith("/v3/api-docs") ||
+                path.startsWith("/api-docs") ||
+                path.startsWith("/api/patients/") && path.contains("/medical/")) {
             filterChain.doFilter(request, response);
             return;
         }
