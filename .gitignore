@@ -33,5 +33,6 @@ build/
 
 # local env
 .gitignore
-config.bat
 node_modules
+.vscode/
+.env
